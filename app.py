@@ -100,7 +100,7 @@ st.markdown("""
     .status-avg { background: rgba(245, 158, 11, 0.2); color: #F59E0B; border: 1px solid #F59E0B; }
     .status-good { background: rgba(16, 185, 129, 0.2); color: #10B981; border: 1px solid #10B981; }
     
-    /* Corrección para imágenes redondeadas vía CSS global ya que st.image no acepta style */
+    /* Corrección para imágenes redondeadas vía CSS global */
     img { border-radius: 12px; }
 </style>
 """, unsafe_allow_html=True)
@@ -239,7 +239,7 @@ elif "Escanear" in menu:
 
     u = st.session_state.usuario
     d = st.session_state.diario
-    progreso_val = d["calorias"] / u["calorias"]
+    progreso_val = d["calorias"] / u["calorias"] if u["calorias"] > 0 else 0
 
     # 1. SECCIÓN DE CARGA (Arriba, como pediste)
     st.markdown('<div class="st-card">', unsafe_allow_html=True)
@@ -253,9 +253,9 @@ elif "Escanear" in menu:
     
     with col_info:
         if img:
-            # Mostramos la imagen sin el parámetro 'style' que daba error
+            # CORRECCIÓN AQUÍ: Quitamos 'style' dentro de st.image
             image = Image.open(img).convert("RGB")
-            st.image(image, width=300)
+            st.image(image, width=300) 
             
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🔍 ANALIZAR E IMPUTAR PLATO"):
