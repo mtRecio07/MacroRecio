@@ -20,7 +20,7 @@ try:
     api_key = st.secrets["GOOGLE_API_KEY"]
 except:
     # Si no encuentra el secreto (por ejemplo, probando en tu PC), muestra la cajita
-    api_key = st.sidebar.text_input("Tu Google API Key:", type="password")
+    api_key = st.sidebar.text_input("AIzaSyCOwop1VjHBIxmSQUqB1Sv_ZXlaB-YnqS8", type="password")
     
 menu = st.sidebar.radio("Ir a:", ["🏠 Inicio", "👤 Mi Perfil & Metas", "📸 Escáner de Comida"])
 
@@ -199,4 +199,5 @@ elif menu == "📸 Escáner de Comida":
             for plato in st.session_state.diario['historial']:
 
                 st.write(f"- **{plato['nombre_plato']}**: {plato['calorias']} kcal (P: {plato['proteinas']}g | G: {plato['grasas']}g | C: {plato['carbos']}g)")
+
 
