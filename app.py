@@ -144,19 +144,20 @@ if menu == "Inicio":
 # =================================================
 # PERFIL
 # =================================================
-elif menu == "Perfil":
-    st.title("👤 Perfil Nutricional")
-
-    with st.form("perfil"):
+elif st.session_state.pagina_actual == "Configurar Perfil":
+    st.markdown('<div class="st-card"><h2>👤 Configura tus Datos y Metas</h2></div>', unsafe_allow_html=True)
+    
+    with st.form("perfil_form"):
+        st.write("Ingresa tus datos para crear un plan nutricional personalizado.")
         c1, c2 = st.columns(2)
 
         with c1:
             genero = st.selectbox("Género", ["Hombre", "Mujer"])
-            edad = st.number_input("Edad", 10, 100, 25)
-            peso = st.number_input("Peso (kg)", 30, 200, 70)
+            edad = st.number_input("Edad", 15, 90, 25)
+            peso = st.number_input("Peso (kg)", 40, 150, 70)
 
         with c2:
-            altura = st.number_input("Altura (cm)", 100, 250, 170)
+            altura = st.number_input("Altura (cm)", 140, 220, 170)
             actividad = st.selectbox(
                 "Nivel de actividad",
                 [
@@ -172,21 +173,28 @@ elif menu == "Perfil":
                 ["Perder Grasa", "Mantener Peso", "Ganar Músculo"]
             )
 
-        guardar = st.form_submit_button("Guardar y calcular")
-
-    if guardar:
+        st.markdown("<br>", unsafe_allow_html=True)
+        btn_calcular = st.form_submit_button("💾 Guardar y Calcular Metas")
+    
+    # 🔥 CUANDO PRESIONA EL BOTÓN
+    if btn_calcular:
         st.session_state.usuario = calcular_macros(
             genero, edad, peso, altura, actividad, objetivo
         )
-        st.success("Perfil guardado correctamente")
+        st.success("¡Metas calculadas correctamente!")
 
+    # ✅ MOSTRAR REQUERIMIENTOS AUTOMÁTICAMENTE
     if st.session_state.usuario:
         u = st.session_state.usuario
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("🔥 Calorías", u["calorias"])
-        c2.metric("💪 Proteínas", f"{u['proteinas']} g")
-        c3.metric("🥑 Grasas", f"{u['grasas']} g")
-        c4.metric("🍞 Carbos", f"{u['carbos']} g")
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="st-card"><h3>📌 Tus Requerimientos Diarios</h3></div>', unsafe_allow_html=True)
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("🔥 Calorías", f"{u['calorias']} kcal")
+        col2.metric("💪 Proteínas", f"{u['proteinas']} g")
+        col3.metric("🥑 Grasas", f"{u['grasas']} g")
+        col4.metric("🍞 Carbohidratos", f"{u['carbos']} g")
 
 # =================================================
 # DASHBOARD AVANZADO
@@ -242,3 +250,4 @@ elif menu == "Escáner":
             d["historial"].append(data)
 
             st.success(f"🍽 {data['nombre_plato']} registrado")
+
