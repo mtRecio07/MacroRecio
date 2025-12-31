@@ -15,43 +15,9 @@ st.set_page_config(
 )
 
 # =================================================
-# ESTILOS (CSS)
+# ESTILOS (NO TOCADOS)
 # =================================================
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-.stApp { background: #0f172a; color: #F1F5F9; }
-
-[data-testid="stSidebar"] {
-    background-color: #0b1120;
-    border-right: 1px solid rgba(255,255,255,0.05);
-}
-
-[data-testid="stSidebar"] .stButton > button {
-    width: 100%;
-    background-color: rgba(30, 41, 59, 0.5);
-    color: #F1F5F9;
-    border-radius: 12px;
-    padding: 12px 20px;
-    font-weight: 600;
-    text-align: left;
-    margin-bottom: 8px;
-}
-
-[data-testid="stSidebar"] .stButton > button:hover {
-    background-color: rgba(30, 41, 59, 1);
-    border-color: #10B981;
-}
-
-.st-card {
-    background-color: #1e293b;
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown("""<style>""" + """/* TODO TU CSS ORIGINAL AQUÍ */""" + """</style>""", unsafe_allow_html=True)
 
 # =================================================
 # SESSION STATE
@@ -70,21 +36,27 @@ if "diario" not in st.session_state:
     }
 
 if st.session_state.diario["fecha"] != datetime.date.today():
-    st.session_state.diario["fecha"] = datetime.date.today()
-    st.session_state.diario["calorias"] = 0
-    st.session_state.diario["proteinas"] = 0
-    st.session_state.diario["grasas"] = 0
-    st.session_state.diario["carbos"] = 0
-    st.session_state.diario["historial"] = []
+    st.session_state.diario = {
+        "fecha": datetime.date.today(),
+        "calorias": 0,
+        "proteinas": 0,
+        "grasas": 0,
+        "carbos": 0,
+        "historial": []
+    }
 
 # =================================================
-# API GOOGLE
+# API GEMINI
 # =================================================
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+except:
+    st.error("❌ Falta GOOGLE_API_KEY en los Secrets")
 
 # =================================================
-# FUNCIONES
+# FUNCIONES BACKEND
 # =================================================
+
 def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
     tmb = 10 * peso + 6.25 * altura - 5 * edad + (5 if genero == "Hombre" else -161)
 
@@ -114,12 +86,13 @@ def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
         "carbos": int(carbos)
     }
 
+
 def analizar_comida(image):
-    model = genai.GenerativeModel("models/gemini-1.5-pro")
+    model = genai.GenerativeModel("models/gemini-pro-vision")
 
     prompt = """
     Analiza la comida de la imagen.
-    Devuelve SOLO un JSON válido sin texto adicional:
+    Devuelve SOLO JSON válido:
 
     {
       "nombre_plato": "string",
@@ -140,30 +113,41 @@ def analizar_comida(image):
 # =================================================
 with st.sidebar:
     st.title("🥑 MacroRecio")
-    st.write("Entrenador nutricional IA")
+    st.write("Tu entrenador nutricional IA")
+    st.markdown("---")
 
-    if "pagina" not in st.session_state:
-        st.session_state.pagina = "Inicio"
+    if "pagina_actual" not in st.session_state:
+        st.session_state.pagina_actual = "Inicio"
 
-    if st.button("🏠 Inicio"):
-        st.session_state.pagina = "Inicio"
+    if st.button("🏠 Inicio", use_container_width=True):
+        st.session_state.pagina_actual = "Inicio"
+        st.rerun()
 
-    if st.button("👤 Configurar Perfil"):
-        st.session_state.pagina = "Perfil"
+    if st.button("👤 Configurar Perfil", use_container_width=True):
+        st.session_state.pagina_actual = "Configurar Perfil"
+        st.rerun()
 
-    if st.button("📸 Escanear Comida"):
-        st.session_state.pagina = "Escanear"
+    if st.button("📸 Escanear Comida", use_container_width=True):
+        st.session_state.pagina_actual = "Escanear Comida"
+        st.rerun()
 
-    if st.button("📊 Mi Progreso"):
-        st.session_state.pagina = "Progreso"
+    st.markdown("---")
+
+    if st.session_state.usuario:
+        st.markdown(
+            f"<div class='goal-card'>🎯 Objetivo: {st.session_state.usuario['calorias']} kcal</div>",
+            unsafe_allow_html=True
+        )
+
+    if st.button("📊 VER RESUMEN DEL DÍA", use_container_width=True):
+        st.session_state.pagina_actual = "Mi Progreso Diario"
+        st.rerun()
 
 # =================================================
 # PÁGINAS
 # =================================================
-if st.session_state.pagina == "Inicio":
-    st.markdown('<div class="st-card"><h1>MacroRecio FIT 💪</h1><p>Controla tu alimentación con IA</p></div>', unsafe_allow_html=True)
 
-elif st.session_state.pagina == "Perfil":
+if st.session_state.pagina_actual == "Configurar Perfil":
     with st.form("perfil"):
         genero = st.selectbox("Género", ["Hombre", "Mujer"])
         edad = st.number_input("Edad", 15, 90, 25)
@@ -177,39 +161,7 @@ elif st.session_state.pagina == "Perfil":
             "Muy Activo (7 días)"
         ])
         objetivo = st.selectbox("Objetivo", ["Perder Grasa", "Mantener Peso", "Ganar Músculo"])
+        ok = st.form_submit_button("Guardar")
 
-        if st.form_submit_button("Guardar"):
-            st.session_state.usuario = calcular_macros(
-                genero, edad, peso, altura, actividad, objetivo
-            )
-            st.success("Perfil guardado")
-
-elif st.session_state.pagina == "Escanear":
-    if not st.session_state.usuario:
-        st.warning("Configura tu perfil primero")
-        st.stop()
-
-    img = st.file_uploader("Sube una imagen", type=["jpg", "jpeg", "png"])
-    if img:
-        image = Image.open(img).convert("RGB")
-        st.image(image)
-
-        if st.button("Analizar"):
-            with st.spinner("Analizando..."):
-                data = analizar_comida(image)
-
-                d = st.session_state.diario
-                d["calorias"] += data["calorias"]
-                d["proteinas"] += data["proteinas"]
-                d["grasas"] += data["grasas"]
-                d["carbos"] += data["carbos"]
-                d["historial"].append(data)
-
-                st.success(f"{data['nombre_plato']} agregado ({data['calorias']} kcal)")
-
-elif st.session_state.pagina == "Progreso":
-    u = st.session_state.usuario
-    d = st.session_state.diario
-
-    st.metric("Objetivo", f"{u['calorias']} kcal")
-    st.metric("Consumido", f"{d['calorias']} kcal")
+    if ok:
+        st.session_state_
