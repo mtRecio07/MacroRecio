@@ -275,23 +275,54 @@ elif st.session_state.pagina_actual == "Configurar Perfil":
     with st.form("perfil_form"):
         st.write("Ingresa tus datos para crear un plan nutricional personalizado.")
         c1, c2 = st.columns(2)
+
         with c1:
             genero = st.selectbox("Género", ["Hombre", "Mujer"])
             edad = st.number_input("Edad", 15, 90, 25)
             peso = st.number_input("Peso (kg)", 40, 150, 70)
+
         with c2:
             altura = st.number_input("Altura (cm)", 140, 220, 170)
-            actividad = st.selectbox("Nivel de actividad", ["Sedentario (0 días)", "Ligero (1-2 días)", "Moderado (3-4 días)", "Activo (5-6 días)", "Muy Activo (7 días)"])
-            objetivo = st.selectbox("Objetivo", ["Perder Grasa", "Mantener Peso", "Ganar Músculo"])
-        
+            actividad = st.selectbox(
+                "Nivel de actividad",
+                [
+                    "Sedentario (0 días)",
+                    "Ligero (1-2 días)",
+                    "Moderado (3-4 días)",
+                    "Activo (5-6 días)",
+                    "Muy Activo (7 días)"
+                ]
+            )
+            objetivo = st.selectbox(
+                "Objetivo",
+                ["Perder Grasa", "Mantener Peso", "Ganar Músculo"]
+            )
+
         st.markdown("<br>", unsafe_allow_html=True)
-        # Este botón usa el estilo de botón principal (relleno verde)
         btn_calcular = st.form_submit_button("💾 Guardar y Calcular Metas")
     
+    # 🔥 CALCULAR PERFIL
     if btn_calcular:
-        st.session_state.usuario = calcular_macros(genero, edad, peso, altura, actividad, objetivo)
-        st.success("¡Perfil guardado con éxito! Ahora puedes empezar a escanear tus comidas.")
-        st.balloons()
+        st.session_state.usuario = calcular_macros(
+            genero, edad, peso, altura, actividad, objetivo
+        )
+        st.success("¡Perfil guardado con éxito!")
+
+    # ✅ MOSTRAR REQUERIMIENTOS ABAJO DEL FORM
+    if st.session_state.usuario:
+        u = st.session_state.usuario
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(
+            '<div class="st-card"><h3>📌 Tus Requerimientos Diarios</h3></div>',
+            unsafe_allow_html=True
+        )
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("🔥 Calorías", f"{u['calorias']} kcal")
+        col2.metric("💪 Proteínas", f"{u['proteinas']} g")
+        col3.metric("🥑 Grasas", f"{u['grasas']} g")
+        col4.metric("🍞 Carbohidratos", f"{u['carbos']} g")
 
 # 3. ESCÁNER
 elif st.session_state.pagina_actual == "Escanear Comida":
@@ -415,3 +446,4 @@ elif st.session_state.pagina_actual == "Mi Progreso Diario":
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
