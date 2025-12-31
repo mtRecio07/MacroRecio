@@ -2,6 +2,7 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 import json
+import datetime
 
 # =================================================
 # CONFIGURACIÓN GENERAL
@@ -20,6 +21,18 @@ if "usuario" not in st.session_state:
 
 if "diario" not in st.session_state:
     st.session_state.diario = {
+        "fecha": datetime.date.today(),
+        "calorias": 0,
+        "proteinas": 0,
+        "grasas": 0,
+        "carbos": 0,
+        "historial": []
+    }
+
+# Reset diario automático
+if st.session_state.diario["fecha"] != datetime.date.today():
+    st.session_state.diario = {
+        "fecha": datetime.date.today(),
         "calorias": 0,
         "proteinas": 0,
         "grasas": 0,
@@ -36,27 +49,43 @@ genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 # IA VISIÓN (GRATIS)
 # =================================================
 def analizar_comida(image):
-    model = genai.GenerativeModel("models/gemini-pro-vision")
-    prompt = """
-    Analiza la comida de la imagen.
-    Devuelve SOLO JSON:
-    {
-      "nombre_plato": "string",
-      "calorias": int,
-      "proteinas": int,
-      "grasas": int,
-      "carbos": int
-    }
-    """
-    res = model.generate_content([prompt, image])
-    texto = res.text.replace("```json", "").replace("```", "").strip()
-    return json.loads(texto)
+    try:
+        model = genai.GenerativeModel("models/gemini-1.5-flash")
+
+        prompt = """
+        Analiza la comida de la imagen.
+        Respondé SOLO en JSON válido:
+        {
+          "nombre_plato": "string",
+          "calorias": int,
+          "proteinas": int,
+          "grasas": int,
+          "carbos": int
+        }
+        """
+
+        response = model.generate_content(
+            [
+                prompt,
+                {
+                    "mime_type": "image/jpeg",
+                    "data": image.tobytes()
+                }
+            ]
+        )
+
+        texto = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(texto)
+
+    except Exception as e:
+        st.error(f"Error al analizar la comida: {e}")
+        return None
 
 # =================================================
 # CÁLCULO DE MACROS (REAL)
 # =================================================
 def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
-    tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
+    tmb = 10 * peso + 6.25 * altura - 5 * edad + (5 if genero == "Hombre" else -161)
 
     factores = {
         "Sedentario": 1.2,
@@ -75,7 +104,7 @@ def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
 
     proteinas = peso * 2
     grasas = peso * 0.9
-    carbos = (calorias - (proteinas*4 + grasas*9)) / 4
+    carbos = (calorias - (proteinas * 4 + grasas * 9)) / 4
 
     return {
         "calorias": int(calorias),
@@ -101,15 +130,14 @@ if menu == "Inicio":
 
     with col1:
         st.markdown("""
-        ### 📌 ¿Qué es MacroRecioIA?
-        Una plataforma gratuita que:
-        - 📸 Analiza tus comidas con IA
+        ### ¿Qué es MacroRecioIA?
+        - 📸 Escanea tus comidas
         - 🔢 Calcula tus macros diarios
-        - 📊 Lleva tu consumo diario
-        - 🎯 Te ayuda a cumplir tu objetivo físico
+        - 📊 Lleva tu progreso nutricional
+        - 🎯 Te guía hacia tu objetivo físico
         """)
 
-        st.success("Comer bien no es complicado, si lo medís bien.")
+        st.success("Comer bien no es difícil. Medirlo, tampoco.")
 
     with col2:
         st.image(
@@ -165,26 +193,27 @@ elif menu == "Escáner":
     img = st.file_uploader("Subí una foto de tu comida", ["jpg", "png", "jpeg"])
 
     if img:
-        image = Image.open(img)
+        image = Image.open(img).convert("RGB")
         st.image(image, width=350)
 
         if st.button("Analizar comida"):
             data = analizar_comida(image)
 
-            d = st.session_state.diario
-            d["calorias"] += data["calorias"]
-            d["proteinas"] += data["proteinas"]
-            d["grasas"] += data["grasas"]
-            d["carbos"] += data["carbos"]
-            d["historial"].append(data)
+            if data:
+                d = st.session_state.diario
+                d["calorias"] += data["calorias"]
+                d["proteinas"] += data["proteinas"]
+                d["grasas"] += data["grasas"]
+                d["carbos"] += data["carbos"]
+                d["historial"].append(data)
 
-            st.success(f'🍽️ {data["nombre_plato"]}')
+                st.success(f'🍽️ {data["nombre_plato"]}')
 
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Calorías", data["calorias"])
-            col2.metric("Proteínas", f'{data["proteinas"]} g')
-            col3.metric("Grasas", f'{data["grasas"]} g')
-            col4.metric("Carbos", f'{data["carbos"]} g')
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Calorías", data["calorias"])
+                col2.metric("Proteínas", f'{data["proteinas"]} g')
+                col3.metric("Grasas", f'{data["grasas"]} g')
+                col4.metric("Carbos", f'{data["carbos"]} g')
 
     # PROGRESO DIARIO
     u = st.session_state.usuario
