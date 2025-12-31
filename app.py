@@ -15,7 +15,14 @@ if 'diario' not in st.session_state:
 # --- BARRA LATERAL (NAVEGACIÓN) ---
 st.sidebar.title("🥑 Menú Principal")
 # API Key (Idealmente esto va en secrets, pero lo dejamos aquí para tu prueba)
-api_key = "AIzaSyAwNmjYuaOHkU6fwTHPMgeIk7sNMRzCW58" 
+try:
+    # Intenta obtener la clave de los secretos de Streamlit
+    api_key = st.secrets["GOOGLE_API_KEY"]
+except:
+    # Si falla, no hace nada (evitamos poner claves en el código)
+    st.error("No se encontró la clave API en los secretos.")
+    st.stop()
+
 genai.configure(api_key=api_key)
     
 menu = st.sidebar.radio("Ir a:", ["🏠 Inicio", "👤 Mi Perfil & Metas", "📸 Escáner de Comida"])
@@ -195,6 +202,7 @@ elif menu == "📸 Escáner de Comida":
             for plato in st.session_state.diario['historial']:
 
                 st.write(f"- **{plato['nombre_plato']}**: {plato['calorias']} kcal (P: {plato['proteinas']}g | G: {plato['grasas']}g | C: {plato['carbos']}g)")
+
 
 
 
