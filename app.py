@@ -30,7 +30,7 @@ if api_key:
 # --- FUNCIÓN AUXILIAR: LLAMAR A GEMINI CON FORMATO JSON ---
 def consultar_gemini_json(prompt, image=None):
     try:
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         if image:
             response = model.generate_content([prompt, image])
         else:
@@ -199,3 +199,4 @@ elif menu == "📸 Escáner de Comida":
             for plato in st.session_state.diario['historial']:
 
                 st.write(f"- **{plato['nombre_plato']}**: {plato['calorias']} kcal (P: {plato['proteinas']}g | G: {plato['grasas']}g | C: {plato['carbos']}g)")
+
