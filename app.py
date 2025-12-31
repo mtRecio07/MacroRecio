@@ -156,37 +156,37 @@ except Exception:
 
 # Funciones
 def analizar_comida(image):
-    model = genai.GenerativeModel("models/gemini-1.5-flash")
-    prompt = """Analiza la comida de la imagen. Responde SOLO con un objeto JSON válido: {"nombre_plato": "string", "calorias": int, "proteinas": int, "grasas": int, "carbos": int}"""
-    response = model.generate_content([prompt, {"mime_type": "image/jpeg", "data": image.tobytes()}])
-    texto_limpio = response.text.replace("```json", "").replace("```", "").strip()
-    return json.loads(texto_limpio)
+    try:
+        model = genai.GenerativeModel("models/gemini-pro-vision")
 
-def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
-    tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
-    # Factores de actividad simplificados para el nombre del selectbox
-    factores = {
-        "Sedentario (0 días)": 1.2,
-        "Ligero (1-2 días)": 1.375,
-        "Moderado (3-4 días)": 1.55,
-        "Activo (5-6 días)": 1.725,
-        "Muy Activo (7 días)": 1.9
-    }
-    calorias = tmb * factores[actividad]
-    if objetivo == "Perder Grasa": calorias -= 400
-    elif objetivo == "Ganar Músculo": calorias += 300
-    
-    # Distribución estándar de macros
-    proteinas = peso * 2 # 2g por kg de peso
-    grasas = peso * 0.9 # 0.9g por kg de peso
-    carbos = (calorias - (proteinas*4 + grasas*9)) / 4
-    
-    return {
-        "calorias": int(calorias),
-        "proteinas": int(proteinas),
-        "grasas": int(grasas),
-        "carbos": int(carbos)
-    }
+        prompt = """
+        Analiza la comida de la imagen.
+        Responde SOLO con un objeto JSON válido.
+        No agregues texto extra.
+
+        {
+          "nombre_plato": "string",
+          "calorias": int,
+          "proteinas": int,
+          "grasas": int,
+          "carbos": int
+        }
+        """
+
+        response = model.generate_content([prompt, image])
+
+        texto_limpio = (
+            response.text
+            .replace("```json", "")
+            .replace("```", "")
+            .strip()
+        )
+
+        return json.loads(texto_limpio)
+
+    except Exception as e:
+        raise Exception(f"Error IA: {e}")
+
 
 # =================================================
 # NUEVA BARRA LATERAL (DISEÑO UNIFICADO)
@@ -446,4 +446,5 @@ elif st.session_state.pagina_actual == "Mi Progreso Diario":
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
 
