@@ -113,4 +113,42 @@ if menu == "Perfil":
             "Actividad",
             ["Sedentario", "Ligero (1-3 días)", "Moderado (3-5 días)", "Activo (6-7 días)", "Muy Activo"]
         )
-        objetivo = st.selectbox("Objetivo", ["Perder Grasa", "Mantener Pes]()
+        objetivo = st.selectbox("Objetivo", ["Perder Grasa", "Mantener Peso", "Ganar Músculo"])
+        ok = st.form_submit_button("Calcular")
+
+    if ok:
+        st.session_state.usuario = calcular_macros(
+            genero, edad, peso, altura, actividad, objetivo
+        )
+        st.success("Metas calculadas")
+
+    if st.session_state.usuario:
+        u = st.session_state.usuario
+        st.metric("Calorías", u["calorias"])
+        st.metric("Proteínas", f"{u['proteinas']} g")
+        st.metric("Grasas", f"{u['grasas']} g")
+        st.metric("Carbos", f"{u['carbos']} g")
+
+# =================================================
+# ESCÁNER
+# =================================================
+elif menu == "Escáner":
+    if not st.session_state.usuario:
+        st.warning("Configurá el perfil primero")
+        st.stop()
+
+    img = st.file_uploader("Subí una foto", ["jpg", "png", "jpeg"])
+    if img:
+        image = Image.open(img)
+        st.image(image, width=300)
+
+        if st.button("Analizar"):
+            data = analizar_comida(image)
+            if data:
+                d = st.session_state.diario
+                d["calorias"] += data["calorias"]
+                d["proteinas"] += data["proteinas"]
+                d["grasas"] += data["grasas"]
+                d["carbos"] += data["carbos"]
+                d["historial"].append(data)
+                st.success(data["nombre_plato"])
