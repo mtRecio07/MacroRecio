@@ -49,50 +49,45 @@ genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 # IA VISIÓN (GRATIS)
 # =================================================
 def analizar_comida(image):
-    try:
-        model = genai.GenerativeModel("models/gemini-1.5-flash")
+    model = genai.GenerativeModel("models/gemini-1.5-flash")
 
-        prompt = """
-        Analiza la comida de la imagen.
-        Respondé SOLO en JSON válido:
-        {
-          "nombre_plato": "string",
-          "calorias": int,
-          "proteinas": int,
-          "grasas": int,
-          "carbos": int
-        }
-        """
+    prompt = """
+    Analiza la comida de la imagen.
+    Respondé SOLO en JSON válido:
+    {
+      "nombre_plato": "string",
+      "calorias": int,
+      "proteinas": int,
+      "grasas": int,
+      "carbos": int
+    }
+    """
 
-        response = model.generate_content(
-            [
-                prompt,
-                {
-                    "mime_type": "image/jpeg",
-                    "data": image.tobytes()
-                }
-            ]
-        )
+    response = model.generate_content(
+        [
+            prompt,
+            {
+                "mime_type": "image/jpeg",
+                "data": image.tobytes()
+            }
+        ]
+    )
 
-        texto = response.text.replace("```json", "").replace("```", "").strip()
-        return json.loads(texto)
-
-    except Exception as e:
-        st.error(f"Error al analizar la comida: {e}")
-        return None
+    texto = response.text.replace("```json", "").replace("```", "").strip()
+    return json.loads(texto)
 
 # =================================================
-# CÁLCULO DE MACROS (REAL)
+# CÁLCULO DE MACROS
 # =================================================
 def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
-    tmb = 10 * peso + 6.25 * altura - 5 * edad + (5 if genero == "Hombre" else -161)
+    tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
 
     factores = {
-        "Sedentario": 1.2,
-        "Ligero": 1.375,
-        "Moderado": 1.55,
-        "Activo": 1.725,
-        "Muy Activo": 1.9
+        "Sedentario (0 días)": 1.2,
+        "Ligero (1-2 días)": 1.375,
+        "Moderado (3-4 días)": 1.55,
+        "Activo (5-6 días)": 1.725,
+        "Muy Activo (7 días)": 1.9
     }
 
     calorias = tmb * factores[actividad]
@@ -104,7 +99,7 @@ def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
 
     proteinas = peso * 2
     grasas = peso * 0.9
-    carbos = (calorias - (proteinas * 4 + grasas * 9)) / 4
+    carbos = (calorias - (proteinas*4 + grasas*9)) / 4
 
     return {
         "calorias": int(calorias),
@@ -124,32 +119,23 @@ menu = st.sidebar.radio("Navegación", ["Inicio", "Perfil", "Escáner"])
 # =================================================
 if menu == "Inicio":
     st.title("🥗 MacroRecioIA")
-    st.subheader("Tu nutrición, medida con IA")
+    st.subheader("Comé mejor. Medí todo. Progresá.")
 
-    col1, col2 = st.columns(2)
+    st.markdown("""
+    ### 🚀 ¿Qué hace MacroRecioIA?
+    ✔ Analiza tus comidas con IA  
+    ✔ Calcula tus macros ideales  
+    ✔ Lleva tu progreso diario  
+    ✔ Te dice si vas bien o mal  
+    """)
 
-    with col1:
-        st.markdown("""
-        ### ¿Qué es MacroRecioIA?
-        - 📸 Escanea tus comidas
-        - 🔢 Calcula tus macros diarios
-        - 📊 Lleva tu progreso nutricional
-        - 🎯 Te guía hacia tu objetivo físico
-        """)
-
-        st.success("Comer bien no es difícil. Medirlo, tampoco.")
-
-    with col2:
-        st.image(
-            "https://images.unsplash.com/photo-1490645935967-10de6ba17061",
-            use_column_width=True
-        )
+    st.info("La constancia vence a la motivación.")
 
 # =================================================
 # PERFIL
 # =================================================
 elif menu == "Perfil":
-    st.title("👤 Tu Perfil Nutricional")
+    st.header("👤 Perfil Nutricional")
 
     with st.form("perfil"):
         col1, col2 = st.columns(2)
@@ -161,8 +147,20 @@ elif menu == "Perfil":
 
         with col2:
             altura = st.number_input("Altura (cm)", 100, 250, 170)
-            actividad = st.selectbox("Actividad", ["Sedentario", "Ligero", "Moderado", "Activo", "Muy Activo"])
-            objetivo = st.selectbox("Objetivo", ["Perder Grasa", "Mantener Peso", "Ganar Músculo"])
+            actividad = st.selectbox(
+                "Nivel de actividad",
+                [
+                    "Sedentario (0 días)",
+                    "Ligero (1-2 días)",
+                    "Moderado (3-4 días)",
+                    "Activo (5-6 días)",
+                    "Muy Activo (7 días)"
+                ]
+            )
+            objetivo = st.selectbox(
+                "Objetivo",
+                ["Perder Grasa", "Mantener Peso", "Ganar Músculo"]
+            )
 
         ok = st.form_submit_button("Calcular requerimientos")
 
@@ -170,63 +168,77 @@ elif menu == "Perfil":
         st.session_state.usuario = calcular_macros(
             genero, edad, peso, altura, actividad, objetivo
         )
-        st.success("Metas guardadas correctamente")
+        st.success("Metas calculadas correctamente")
 
     if st.session_state.usuario:
         u = st.session_state.usuario
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("🔥 Calorías", u["calorias"])
-        c2.metric("💪 Proteínas", f'{u["proteinas"]} g')
-        c3.metric("🥑 Grasas", f'{u["grasas"]} g')
-        c4.metric("🍞 Carbos", f'{u["carbos"]} g')
+        c2.metric("💪 Proteínas", f"{u['proteinas']} g")
+        c3.metric("🥑 Grasas", f"{u['grasas']} g")
+        c4.metric("🍞 Carbos", f"{u['carbos']} g")
 
 # =================================================
 # ESCÁNER
 # =================================================
 elif menu == "Escáner":
-    st.title("📸 Escáner de Comidas")
+    st.header("📸 Escáner de Comidas")
 
     if not st.session_state.usuario:
         st.warning("Primero completá tu perfil")
         st.stop()
 
-    img = st.file_uploader("Subí una foto de tu comida", ["jpg", "png", "jpeg"])
+    img = st.file_uploader("Subí una foto de tu comida", ["jpg", "jpeg", "png"])
 
     if img:
         image = Image.open(img).convert("RGB")
-        st.image(image, width=350)
+        st.image(image, width=300)
 
         if st.button("Analizar comida"):
             data = analizar_comida(image)
 
-            if data:
-                d = st.session_state.diario
-                d["calorias"] += data["calorias"]
-                d["proteinas"] += data["proteinas"]
-                d["grasas"] += data["grasas"]
-                d["carbos"] += data["carbos"]
-                d["historial"].append(data)
+            d = st.session_state.diario
+            d["calorias"] += data["calorias"]
+            d["proteinas"] += data["proteinas"]
+            d["grasas"] += data["grasas"]
+            d["carbos"] += data["carbos"]
+            d["historial"].append(data)
 
-                st.success(f'🍽️ {data["nombre_plato"]}')
+            st.success(f"🍽️ {data['nombre_plato']} agregado")
 
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("Calorías", data["calorias"])
-                col2.metric("Proteínas", f'{data["proteinas"]} g')
-                col3.metric("Grasas", f'{data["grasas"]} g')
-                col4.metric("Carbos", f'{data["carbos"]} g')
-
-    # PROGRESO DIARIO
+    # DASHBOARD
     u = st.session_state.usuario
     d = st.session_state.diario
 
     st.divider()
-    st.subheader("📊 Progreso Diario")
+    st.subheader("📊 Dashboard Diario")
 
-    st.progress(min(d["calorias"] / u["calorias"], 1.0))
+    progreso = d["calorias"] / u["calorias"]
+    st.progress(min(progreso, 1.0))
 
-    if d["calorias"] < u["calorias"]:
-        st.info("Todavía te faltan calorías para tu objetivo")
-    elif d["calorias"] > u["calorias"]:
-        st.warning("Te excediste en calorías hoy")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("🔥 Cal consumidas", d["calorias"])
+    c2.metric("💪 Proteínas", f"{d['proteinas']} g")
+    c3.metric("🥑 Grasas", f"{d['grasas']} g")
+    c4.metric("🍞 Carbos", f"{d['carbos']} g")
+
+    # ESTADO GENERAL
+    if progreso < 0.7:
+        st.error("❌ Vas mal hoy. Necesitás comer mejor.")
+    elif progreso < 0.95:
+        st.warning("⚠️ Podés mejorar. Estás cerca.")
     else:
-        st.success("¡Objetivo diario alcanzado!")
+        st.success("✅ Excelente. Vas cumpliendo tu objetivo.")
+
+    # HISTORIAL
+    if d["historial"]:
+        st.divider()
+        st.subheader("📋 Historial del día")
+        for item in d["historial"]:
+            st.write(
+                f"• {item['nombre_plato']} — "
+                f"{item['calorias']} kcal | "
+                f"P {item['proteinas']}g | "
+                f"G {item['grasas']}g | "
+                f"C {item['carbos']}g"
+            )
