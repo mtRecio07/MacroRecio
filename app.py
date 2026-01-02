@@ -102,7 +102,10 @@ if "diario" not in st.session_state:
 # =================================================
 # GEMINI
 # =================================================
-genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+except:
+    pass
 
 # =================================================
 # FUNCIONES
@@ -134,28 +137,48 @@ Analiza la comida y devuelve SOLO este JSON válido:
     return json.loads(limpio)
 
 def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
+    # Mifflin-St Jeor
     tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
 
-    factores = {
-        "Sedentario": 1.2,
-        "Ligero": 1.375,
-        "Moderado": 1.55,
-        "Activo": 1.725,
-        "Muy activo": 1.9
+    # Factores con descripción (usamos split para tomar solo el valor numérico mapeado o el string base)
+    mapa_actividad = {
+        "Sedentario (0 días)": 1.2,
+        "Ligero (1-2 días)": 1.375,
+        "Moderado (3-4 días)": 1.55,
+        "Activo (5-6 días)": 1.725,
+        "Muy activo (7 días)": 1.9
     }
+    
+    factor = mapa_actividad.get(actividad, 1.2)
+    calorias_mantenimiento = tmb * factor
 
-    calorias = tmb * factores[actividad]
-    if objetivo == "Perder grasa":
-        calorias -= 400
-    elif objetivo == "Ganar músculo":
-        calorias += 300
+    # Ajustes según objetivo
+    calorias_final = calorias_mantenimiento
+    proteinas_gramos_kg = 2.0 # Default
 
-    proteinas = peso * 2
-    grasas = peso * 0.9
-    carbos = (calorias - (proteinas*4 + grasas*9)) / 4
+    if objetivo == "ganar musculo":
+        calorias_final += 300
+        proteinas_gramos_kg = 2.2 # Más proteína para síntesis muscular
+    elif objetivo == "perder grasa":
+        calorias_final -= 400
+        proteinas_gramos_kg = 2.3 # Alta proteína para proteger músculo en déficit
+    elif objetivo == "recomposicion corporal":
+        calorias_final -= 100 # Déficit muy ligero
+        proteinas_gramos_kg = 2.4 # Proteína muy alta
+    elif objetivo == "mantener fisico":
+        calorias_final = calorias_mantenimiento
+        proteinas_gramos_kg = 1.8 # Proteína de mantenimiento estándar
+
+    # Cálculo final de macros
+    proteinas = peso * proteinas_gramos_kg
+    grasas = peso * 0.9 # 0.9g - 1g por kg es saludable
+    
+    # El resto de calorías van a carbohidratos
+    calorias_restantes = calorias_final - (proteinas * 4 + grasas * 9)
+    carbos = calorias_restantes / 4
 
     return {
-        "calorias": int(calorias),
+        "calorias": int(calorias_final),
         "proteinas": int(proteinas),
         "grasas": int(grasas),
         "carbos": int(carbos)
@@ -193,7 +216,7 @@ if st.session_state.pagina == "Inicio":
     """, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
-    c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_container_width=True)
+    c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_column_width=True)
     c2.image("https://images.unsplash.com/photo-1517836357463-d25dfeac3438", use_container_width=True)
     c3.image("https://images.unsplash.com/photo-1504674900247-0877df9cc836", use_container_width=True)
 
@@ -246,8 +269,37 @@ elif st.session_state.pagina == "Perfil":
             peso = st.number_input("Peso (kg)", 40, 150, 70)
         with c2:
             altura = st.number_input("Altura (cm)", 140, 220, 170)
-            actividad = st.selectbox("Actividad", ["Sedentario", "Ligero", "Moderado", "Activo", "Muy activo"])
-            objetivo = st.selectbox("Objetivo", ["Perder grasa", "Mantener", "Ganar músculo"])
+            # Actividad con descripción de días
+            actividad = st.selectbox(
+                "Nivel de actividad",
+                [
+                    "Sedentario (0 días)",
+                    "Ligero (1-2 días)",
+                    "Moderado (3-4 días)",
+                    "Activo (5-6 días)",
+                    "Muy activo (7 días)"
+                ]
+            )
+            # Objetivos exactos solicitados
+            objetivo = st.selectbox(
+                "Objetivo",
+                [
+                    "ganar musculo",
+                    "perder grasa",
+                    "recomposicion corporal",
+                    "mantener fisico"
+                ]
+            )
+
+        # Mensaje explicativo automático según objetivo
+        if objetivo == "ganar musculo":
+            st.info("💡 **Estrategia:** Superávit calórico ligero + Proteína moderada/alta para maximizar hipertrofia.")
+        elif objetivo == "perder grasa":
+            st.info("💡 **Estrategia:** Déficit calórico controlado + Proteína alta para proteger tu masa muscular.")
+        elif objetivo == "recomposicion corporal":
+            st.info("💡 **Estrategia:** Normocalórica o ligero déficit + Proteína muy alta para ganar músculo y perder grasa simultáneamente (ideal principiantes).")
+        elif objetivo == "mantener fisico":
+            st.info("💡 **Estrategia:** Calorías de mantenimiento + Proteína estándar para salud y rendimiento.")
 
         ok = st.form_submit_button("Calcular requerimientos")
 
@@ -258,9 +310,9 @@ elif st.session_state.pagina == "Perfil":
         u = st.session_state.usuario
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("🔥 Calorías", u["calorias"])
-        c2.metric("🥩 Proteínas", u["proteinas"])
-        c3.metric("🥑 Grasas", u["grasas"])
-        c4.metric("🍞 Carbos", u["carbos"])
+        c2.metric("🥩 Proteínas", f"{u['proteinas']}g")
+        c3.metric("🥑 Grasas", f"{u['grasas']}g")
+        c4.metric("🍞 Carbos", f"{u['carbos']}g")
 
 elif st.session_state.pagina == "Escaner":
     if not st.session_state.usuario:
@@ -276,30 +328,40 @@ elif st.session_state.pagina == "Escaner":
 
         if st.button("Analizar comida"):
             with st.spinner("Analizando con IA..."):
-                data = analizar_comida(image)
-
-            d = st.session_state.diario
-            for k in ["calorias", "proteinas", "grasas", "carbos"]:
-                d[k] += data[k]
-            d["historial"].append(data)
-
-            st.success(f"✅ {data['nombre_plato']} agregado")
+                try:
+                    data = analizar_comida(image)
+                    d = st.session_state.diario
+                    for k in ["calorias", "proteinas", "grasas", "carbos"]:
+                        d[k] += data[k]
+                    d["historial"].append(data)
+                    st.success(f"✅ {data['nombre_plato']} agregado")
+                except Exception as e:
+                    st.error("Error al analizar la imagen. Intenta de nuevo.")
 
 elif st.session_state.pagina == "Progreso":
+    if not st.session_state.usuario:
+        st.warning("Completá tu perfil primero para ver el progreso.")
+        st.stop()
+
     u = st.session_state.usuario
     d = st.session_state.diario
 
     st.markdown("<div class='card'><h2>Progreso diario</h2></div>", unsafe_allow_html=True)
 
-    st.progress(min(d["calorias"] / u["calorias"], 1.0))
+    if u["calorias"] > 0:
+        progreso = min(d["calorias"] / u["calorias"], 1.0)
+    else:
+        progreso = 0
+        
+    st.progress(progreso)
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("🔥 Consumidas", d["calorias"])
-    c2.metric("🥩 Proteínas", d["proteinas"])
-    c3.metric("🥑 Grasas", d["grasas"])
-    c4.metric("🍞 Carbos", d["carbos"])
+    c1.metric("🔥 Consumidas", d["calorias"], f"Meta: {u['calorias']}")
+    c2.metric("🥩 Proteínas", d["proteinas"], f"Meta: {u['proteinas']}")
+    c3.metric("🥑 Grasas", d["grasas"], f"Meta: {u['grasas']}")
+    c4.metric("🍞 Carbos", d["carbos"], f"Meta: {u['carbos']}")
 
     if d["historial"]:
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
-            st.write(f"- {h['nombre_plato']} — {h['calorias']} kcal")
+            st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
