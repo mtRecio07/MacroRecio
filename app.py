@@ -36,10 +36,6 @@ html, body, [class*="css"] {
     border-right: 1px solid rgba(255,255,255,0.05);
 }
 
-[data-testid="stSidebar"] h1 {
-    font-weight: 800;
-}
-
 /* Buttons */
 .stButton > button {
     width: 100%;
@@ -58,10 +54,10 @@ html, body, [class*="css"] {
 
 /* Cards */
 .card {
-    background: rgba(30,41,59,0.6);
+    background: rgba(30,41,59,0.65);
     border-radius: 18px;
-    padding: 24px;
-    margin-bottom: 20px;
+    padding: 26px;
+    margin-bottom: 22px;
     border: 1px solid rgba(255,255,255,0.05);
 }
 
@@ -119,7 +115,7 @@ def analizar_comida(image: Image.Image):
     image_bytes = buffer.getvalue()
 
     prompt = """
-Analiza la comida y responde SOLO este JSON:
+Analiza la comida y devuelve SOLO este JSON válido:
 {
   "nombre_plato": "string",
   "calorias": number,
@@ -138,7 +134,7 @@ Analiza la comida y responde SOLO este JSON:
     return json.loads(limpio)
 
 def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
-    tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero=="Hombre" else -161)
+    tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
 
     factores = {
         "Sedentario": 1.2,
@@ -185,15 +181,62 @@ with st.sidebar:
 # PÁGINAS
 # =================================================
 if st.session_state.pagina == "Inicio":
+
     st.markdown("""
     <div class="card">
-        <h1>Bienvenido a MacroRecioIA</h1>
-        <p>Tu entrenador nutricional inteligente.</p>
+        <h1>Bienvenido a MacroRecioIA 💪</h1>
+        <p style="font-size:18px; max-width:800px;">
+        Tu entrenador nutricional inteligente para aprender a comer mejor,
+        progresar sin extremos y mantener resultados reales.
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
+    c1, c2, c3 = st.columns(3)
+    c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_container_width=True)
+    c2.image("https://images.unsplash.com/photo-1517836357463-d25dfeac3438", use_container_width=True)
+    c3.image("https://images.unsplash.com/photo-1504674900247-0877df9cc836", use_container_width=True)
+
+    st.markdown("""
+    <div class="card" style="text-align:center;">
+        <h3>🌱 El progreso no es perfecto, es constante</h3>
+        <p>No necesitás dietas extremas, necesitás un sistema que puedas sostener.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+
+    c1.markdown("""
+    <div class="card">
+        <h2>¿Para qué sirve?</h2>
+        <ul>
+            <li>📊 Calcular tus macros personalizados</li>
+            <li>📸 Analizar tus comidas con IA</li>
+            <li>📈 Ver tu progreso diario</li>
+            <li>🧠 Aprender hábitos saludables</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c2.markdown("""
+    <div class="card">
+        <h2>¿Cómo se usa?</h2>
+        <ol>
+            <li>Completá tu perfil</li>
+            <li>Obtené tus requerimientos</li>
+            <li>Escaneá tus comidas</li>
+            <li>Seguimiento simple y visual</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns(3)
+    c1.markdown("<div class='card'><h3>🔥 Constancia</h3><p>Hacelo posible, no perfecto.</p></div>", unsafe_allow_html=True)
+    c2.markdown("<div class='card'><h3>🧠 Paciencia</h3><p>Los cambios reales toman tiempo.</p></div>", unsafe_allow_html=True)
+    c3.markdown("<div class='card'><h3>💚 Equilibrio</h3><p>Comer bien también es disfrutar.</p></div>", unsafe_allow_html=True)
+
 elif st.session_state.pagina == "Perfil":
-    st.markdown('<div class="card"><h2>Perfil nutricional</h2></div>', unsafe_allow_html=True)
+    st.markdown("<div class='card'><h2>Perfil nutricional</h2></div>", unsafe_allow_html=True)
 
     with st.form("perfil"):
         c1, c2 = st.columns(2)
@@ -209,24 +252,22 @@ elif st.session_state.pagina == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
-        st.session_state.usuario = calcular_macros(
-            genero, edad, peso, altura, actividad, objetivo
-        )
+        st.session_state.usuario = calcular_macros(genero, edad, peso, altura, actividad, objetivo)
 
     if st.session_state.usuario:
         u = st.session_state.usuario
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("🔥 Calorías", u["calorias"])
-        c2.metric("🥩 Proteínas (g)", u["proteinas"])
-        c3.metric("🥑 Grasas (g)", u["grasas"])
-        c4.metric("🍞 Carbos (g)", u["carbos"])
+        c2.metric("🥩 Proteínas", u["proteinas"])
+        c3.metric("🥑 Grasas", u["grasas"])
+        c4.metric("🍞 Carbos", u["carbos"])
 
 elif st.session_state.pagina == "Escaner":
     if not st.session_state.usuario:
         st.warning("Primero configurá tu perfil")
         st.stop()
 
-    st.markdown('<div class="card"><h2>Escanear comida</h2></div>', unsafe_allow_html=True)
+    st.markdown("<div class='card'><h2>Escanear comida</h2></div>", unsafe_allow_html=True)
 
     img = st.file_uploader("Subí una foto", ["jpg", "jpeg", "png"])
     if img:
@@ -248,7 +289,7 @@ elif st.session_state.pagina == "Progreso":
     u = st.session_state.usuario
     d = st.session_state.diario
 
-    st.markdown('<div class="card"><h2>Progreso diario</h2></div>', unsafe_allow_html=True)
+    st.markdown("<div class='card'><h2>Progreso diario</h2></div>", unsafe_allow_html=True)
 
     st.progress(min(d["calorias"] / u["calorias"], 1.0))
 
