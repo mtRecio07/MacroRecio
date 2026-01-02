@@ -4,6 +4,7 @@ from PIL import Image
 import json
 import datetime
 import io
+import pyodbc  # <--- IMPORTANTE: Librería para SQL Server
 
 # =================================================
 # CONFIG
@@ -15,7 +16,100 @@ st.set_page_config(
 )
 
 # =================================================
-# ESTILOS PREMIUM
+# CONEXIÓN BASE DE DATOS (NUEVO BLOQUE)
+# =================================================
+def get_db_connection():
+    try:
+        # AJUSTA EL SERVER SI ES NECESARIO (ej: DESKTOP-XYZ\SQLEXPRESS)
+        conn = pyodbc.connect(
+            'DRIVER={ODBC Driver 17 for SQL Server};'
+            'SERVER=localhost;'
+            'DATABASE=MacroRecioBD;'
+            'Trusted_Connection=yes;'
+        )
+        return conn
+    except Exception as e:
+        # Si falla la BD, mostramos error pero la app no se rompe entera
+        st.error(f"Error de conexión a BD: {e}")
+        return None
+
+# Función para guardar el perfil en SQL Server
+def guardar_perfil_bd(datos):
+    conn = get_db_connection()
+    if conn:
+        cursor = conn.cursor()
+        # Verificar si existe usuario (asumimos ID 1 para usuario único local)
+        cursor.execute("SELECT COUNT(*) FROM Usuarios WHERE ID_Usuario = 1")
+        existe = cursor.fetchone()[0]
+        
+        if existe == 0:
+            query = """INSERT INTO Usuarios (Genero, Edad, Peso, Altura, Actividad, Objetivo, Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        else:
+            query = """UPDATE Usuarios SET Genero=?, Edad=?, Peso=?, Altura=?, Actividad=?, Objetivo=?, Meta_Calorias=?, Meta_Proteinas=?, Meta_Grasas=?, Meta_Carbos=?
+                       WHERE ID_Usuario = 1"""
+        
+        cursor.execute(query, (
+            datos['genero'], datos['edad'], datos['peso'], datos['altura'], 
+            datos['actividad'], datos['objetivo'], 
+            datos['calorias'], datos['proteinas'], datos['grasas'], datos['carbos']
+        ))
+        conn.commit()
+        conn.close()
+
+# Función para cargar perfil desde SQL Server
+def cargar_perfil_bd():
+    conn = get_db_connection()
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos FROM Usuarios WHERE ID_Usuario = 1")
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                "calorias": row[0], "proteinas": row[1], 
+                "grasas": row[2], "carbos": row[3]
+            }
+    return None
+
+# Función para guardar comida en SQL Server
+def guardar_comida_bd(plato):
+    conn = get_db_connection()
+    if conn:
+        cursor = conn.cursor()
+        query = """INSERT INTO Comidas (ID_Usuario, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos, Fecha_Consumo)
+                   VALUES (1, ?, ?, ?, ?, ?, CAST(GETDATE() AS DATE))"""
+        cursor.execute(query, (
+            plato['nombre_plato'], plato['calorias'], 
+            plato['proteinas'], plato['grasas'], plato['carbos']
+        ))
+        conn.commit()
+        conn.close()
+
+# Función para leer historial de hoy desde SQL Server
+def leer_progreso_hoy_bd():
+    conn = get_db_connection()
+    historial = []
+    totales = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
+    
+    if conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE Fecha_Consumo = CAST(GETDATE() AS DATE) AND ID_Usuario = 1")
+        rows = cursor.fetchall()
+        for row in rows:
+            historial.append({
+                "nombre_plato": row[0], "calorias": row[1], 
+                "proteinas": row[2], "grasas": row[3], "carbos": row[4]
+            })
+            totales["calorias"] += row[1]
+            totales["proteinas"] += row[2]
+            totales["grasas"] += row[3]
+            totales["carbos"] += row[4]
+        conn.close()
+    return totales, historial
+
+# =================================================
+# ESTILOS PREMIUM (TU CSS ORIGINAL)
 # =================================================
 st.markdown("""
 <style>
@@ -81,23 +175,29 @@ img {
 """, unsafe_allow_html=True)
 
 # =================================================
-# SESSION STATE
+# SESSION STATE (CARGA INICIAL DB)
 # =================================================
 if "pagina" not in st.session_state:
     st.session_state.pagina = "Inicio"
 
-if "usuario" not in st.session_state:
-    st.session_state.usuario = None
+# Intentar cargar usuario de la BD al iniciar
+if "usuario" not in st.session_state or st.session_state.usuario is None:
+    perfil_db = cargar_perfil_bd()
+    if perfil_db:
+        st.session_state.usuario = perfil_db
+    else:
+        st.session_state.usuario = None
 
-if "diario" not in st.session_state:
-    st.session_state.diario = {
-        "fecha": datetime.date.today(),
-        "calorias": 0,
-        "proteinas": 0,
-        "grasas": 0,
-        "carbos": 0,
-        "historial": []
-    }
+# Cargar diario de hoy de la BD
+totales_hoy, historial_hoy = leer_progreso_hoy_bd()
+st.session_state.diario = {
+    "fecha": datetime.date.today(),
+    "calorias": totales_hoy["calorias"],
+    "proteinas": totales_hoy["proteinas"],
+    "grasas": totales_hoy["grasas"],
+    "carbos": totales_hoy["carbos"],
+    "historial": historial_hoy
+}
 
 # =================================================
 # GEMINI
@@ -216,7 +316,7 @@ if st.session_state.pagina == "Inicio":
     """, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
-    c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_column_width=True)
+    c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_container_width=True)
     c2.image("https://images.unsplash.com/photo-1517836357463-d25dfeac3438", use_container_width=True)
     c3.image("https://images.unsplash.com/photo-1504674900247-0877df9cc836", use_container_width=True)
 
@@ -304,7 +404,18 @@ elif st.session_state.pagina == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
-        st.session_state.usuario = calcular_macros(genero, edad, peso, altura, actividad, objetivo)
+        macros = calcular_macros(genero, edad, peso, altura, actividad, objetivo)
+        st.session_state.usuario = macros
+        
+        # GUARDAR EN BD
+        datos_para_bd = {
+            'genero': genero, 'edad': edad, 'peso': peso, 'altura': altura,
+            'actividad': actividad, 'objetivo': objetivo,
+            'calorias': macros['calorias'], 'proteinas': macros['proteinas'],
+            'grasas': macros['grasas'], 'carbos': macros['carbos']
+        }
+        guardar_perfil_bd(datos_para_bd)
+        st.success("✅ Perfil guardado en Base de Datos")
 
     if st.session_state.usuario:
         u = st.session_state.usuario
@@ -330,11 +441,17 @@ elif st.session_state.pagina == "Escaner":
             with st.spinner("Analizando con IA..."):
                 try:
                     data = analizar_comida(image)
+                    
+                    # Guardar en BD
+                    guardar_comida_bd(data)
+                    
+                    # Actualizar estado local
                     d = st.session_state.diario
                     for k in ["calorias", "proteinas", "grasas", "carbos"]:
                         d[k] += data[k]
                     d["historial"].append(data)
-                    st.success(f"✅ {data['nombre_plato']} agregado")
+                    
+                    st.success(f"✅ {data['nombre_plato']} guardado en BD")
                 except Exception as e:
                     st.error("Error al analizar la imagen. Intenta de nuevo.")
 
