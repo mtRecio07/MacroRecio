@@ -7,10 +7,11 @@ import io
 import time
 from datetime import date 
 import pandas as pd
-from sqlalchemy import text # Necesario para PostgreSQL/Supabase
+from sqlalchemy import text
+from streamlit_option_menu import option_menu # Necesitas agregar esto a requirements.txt
 
 # =================================================
-# CONFIG
+# CONFIGURACIÓN DE PÁGINA
 # =================================================
 st.set_page_config(
     page_title="MacroRecioIA",
@@ -18,19 +19,39 @@ st.set_page_config(
 )
 
 # =================================================
-# CONEXIÓN BASE DE DATOS (SUPABASE / POSTGRESQL)
+# ESTILOS CSS
+# =================================================
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+.stApp { background: linear-gradient(135deg, #0f172a, #020617); color: #f8fafc; }
+.stTextInput > div > div > input { color: #000000; } 
+.card { background: rgba(30,41,59,0.65); border-radius: 18px; padding: 26px; margin-bottom: 22px; border: 1px solid rgba(255,255,255,0.05); }
+[data-testid="stMetric"] { background: rgba(30,41,59,0.6); padding: 16px; border-radius: 14px; text-align: center; }
+img { border-radius: 16px; }
+.disclaimer { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 50px; }
+/* Ocultar menú de hamburguesa default */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+</style>
+""", unsafe_allow_html=True)
+
+# =================================================
+# CONEXIÓN BASE DE DATOS
 # =================================================
 def get_db_connection():
-    # Conexión nativa de Streamlit a Supabase usando st.connection
     return st.connection("supabase", type="sql")
 
 def init_db():
     conn = get_db_connection()
-    # Usamos sintaxis compatible con PostgreSQL
     with conn.session as s:
+        # Tabla Usuarios con Login
         s.execute(text("""
             CREATE TABLE IF NOT EXISTS Usuarios (
                 ID_Usuario SERIAL PRIMARY KEY,
+                Username TEXT UNIQUE,
+                Password TEXT,
                 Genero TEXT,
                 Edad INTEGER,
                 Peso REAL,
@@ -43,7 +64,7 @@ def init_db():
                 Meta_Carbos INTEGER
             );
         """))
-        
+        # Tabla Comidas
         s.execute(text("""
             CREATE TABLE IF NOT EXISTS Comidas (
                 ID_Comida SERIAL PRIMARY KEY,
@@ -58,427 +79,333 @@ def init_db():
         """))
         s.commit()
 
-# Iniciamos tablas si no existen (Manejo de errores silencioso para producción)
 try:
     init_db()
-except Exception as e:
-    # Si falla la primera vez, suele ser conexión, reintentamos o mostramos error sutil
-    st.error(f"Error de conexión con la Base de Datos: {e}")
+except:
+    pass
 
 # =================================================
-# FUNCIONES DE BASE DE DATOS (ADAPTADAS)
+# FUNCIONES DE LOGIN Y USUARIO
 # =================================================
-
-def guardar_perfil_bd(datos):
+def registrar_usuario(username, password):
     conn = get_db_connection()
-    # Verificar si existe usuario (ID 1 fijo por ahora)
-    df = conn.query("SELECT COUNT(*) as count FROM Usuarios WHERE ID_Usuario = 1", ttl=0)
-    existe = df.iloc[0]["count"]
-
+    # Verificar si existe
+    df = conn.query("SELECT COUNT(*) as count FROM Usuarios WHERE Username = :user", params={"user": username}, ttl=0)
+    if df.iloc[0]["count"] > 0:
+        return False, "El usuario ya existe."
+    
     with conn.session as s:
-        if existe == 0:
-            query = text("""
-                INSERT INTO Usuarios 
-                (ID_Usuario, Genero, Edad, Peso, Altura, Actividad, Objetivo, 
-                 Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos)
-                VALUES (1, :genero, :edad, :peso, :altura, :actividad, :objetivo, 
-                        :calorias, :proteinas, :grasas, :carbos)
-            """)
-        else:
-            query = text("""
-                UPDATE Usuarios SET 
-                    Genero=:genero, Edad=:edad, Peso=:peso, Altura=:altura, 
-                    Actividad=:actividad, Objetivo=:objetivo, 
-                    Meta_Calorias=:calorias, Meta_Proteinas=:proteinas, 
-                    Meta_Grasas=:grasas, Meta_Carbos=:carbos
-                WHERE ID_Usuario=1
-            """)
-        
+        s.execute(text("""
+            INSERT INTO Usuarios (Username, Password) VALUES (:user, :pass)
+        """), {"user": username, "pass": password})
+        s.commit()
+    return True, "Registro exitoso. Ahora inicia sesión."
+
+def login_usuario(username, password):
+    conn = get_db_connection()
+    query = "SELECT * FROM Usuarios WHERE Username = :user AND Password = :pass"
+    df = conn.query(query, params={"user": username, "pass": password}, ttl=0)
+    if not df.empty:
+        return df.iloc[0].to_dict() # Retorna todo el perfil del usuario
+    return None
+
+# =================================================
+# GESTIÓN DE SESIÓN
+# =================================================
+if 'login_status' not in st.session_state:
+    st.session_state['login_status'] = False
+if 'user_info' not in st.session_state:
+    st.session_state['user_info'] = None
+
+# =================================================
+# PANTALLA DE LOGIN / REGISTRO
+# =================================================
+if not st.session_state['login_status']:
+    st.markdown("<h1 style='text-align: center;'>MacroRecioIA</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Tu entrenador inteligente.</p>", unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["Iniciar Sesión", "Registrarse"])
+    
+    with tab1:
+        with st.form("login_form"):
+            user = st.text_input("Usuario")
+            password = st.text_input("Contraseña", type="password")
+            submit = st.form_submit_button("Entrar")
+            if submit:
+                usuario_encontrado = login_usuario(user, password)
+                if usuario_encontrado:
+                    st.session_state['login_status'] = True
+                    st.session_state['user_info'] = usuario_encontrado
+                    st.rerun()
+                else:
+                    st.error("Usuario o contraseña incorrectos.")
+
+    with tab2:
+        with st.form("register_form"):
+            new_user = st.text_input("Nuevo Usuario")
+            new_pass = st.text_input("Nueva Contraseña", type="password")
+            submit_reg = st.form_submit_button("Crear Cuenta")
+            if submit_reg:
+                if new_user and new_pass:
+                    ok, msg = registrar_usuario(new_user, new_pass)
+                    if ok:
+                        st.success(msg)
+                    else:
+                        st.error(msg)
+                else:
+                    st.warning("Completa todos los campos.")
+    
+    # Detener ejecución aquí si no hay login
+    st.stop()
+
+# =================================================
+# APLICACIÓN PRINCIPAL (SOLO SI ESTÁ LOGUEADO)
+# =================================================
+
+# Cargar API Key
+try:
+    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+except:
+    pass
+
+# --- Funciones de Datos Propias del Usuario Logueado ---
+def guardar_perfil_completo(datos):
+    conn = get_db_connection()
+    user_id = st.session_state['user_info']['id_usuario'] # Clave PostgreSQL suele ser minuscula
+    
+    with conn.session as s:
+        query = text("""
+            UPDATE Usuarios SET 
+                Genero=:genero, Edad=:edad, Peso=:peso, Altura=:altura, 
+                Actividad=:actividad, Objetivo=:objetivo, 
+                Meta_Calorias=:calorias, Meta_Proteinas=:proteinas, 
+                Meta_Grasas=:grasas, Meta_Carbos=:carbos
+            WHERE ID_Usuario=:uid
+        """)
         s.execute(query, {
+            'uid': user_id,
             'genero': datos['genero'], 'edad': datos['edad'], 'peso': datos['peso'], 
             'altura': datos['altura'], 'actividad': datos['actividad'], 'objetivo': datos['objetivo'],
             'calorias': datos['calorias'], 'proteinas': datos['proteinas'], 
             'grasas': datos['grasas'], 'carbos': datos['carbos']
         })
         s.commit()
+    # Actualizar sesión local
+    st.session_state['user_info'].update(datos)
 
-def cargar_perfil_bd():
+def guardar_comida(plato):
     conn = get_db_connection()
-    df = conn.query("SELECT Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos FROM Usuarios WHERE ID_Usuario = 1", ttl=0)
-    if not df.empty:
-        return {
-            "calorias": int(df.iloc[0]["Meta_Calorias"]), 
-            "proteinas": int(df.iloc[0]["Meta_Proteinas"]), 
-            "grasas": int(df.iloc[0]["Meta_Grasas"]), 
-            "carbos": int(df.iloc[0]["Meta_Carbos"])
-        }
-    return None
-
-def guardar_comida_bd(plato):
-    conn = get_db_connection()
+    user_id = st.session_state['user_info']['id_usuario']
     with conn.session as s:
-        s.execute(
-            text("""
+        s.execute(text("""
             INSERT INTO Comidas 
             (ID_Usuario, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos, Fecha_Consumo)
-            VALUES (1, :nombre, :calorias, :proteinas, :grasas, :carbos, :fecha)
-            """),
-            {
-                'nombre': plato['nombre_plato'], 
-                'calorias': plato['calorias'], 
-                'proteinas': plato['proteinas'], 
-                'grasas': plato['grasas'], 
-                'carbos': plato['carbos'],
-                'fecha': date.today()
-            }
-        )
+            VALUES (:uid, :nombre, :calorias, :proteinas, :grasas, :carbos, :fecha)
+        """), {
+            'uid': user_id, 'nombre': plato['nombre_plato'], 'calorias': plato['calorias'], 
+            'proteinas': plato['proteinas'], 'grasas': plato['grasas'], 'carbos': plato['carbos'],
+            'fecha': date.today()
+        })
         s.commit()
 
-def leer_progreso_hoy_bd():
+def leer_progreso_hoy():
     conn = get_db_connection()
+    user_id = st.session_state['user_info']['id_usuario']
     hoy = date.today()
-    # Usamos parámetros seguros (:fecha)
-    query = "SELECT Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE Fecha_Consumo = :fecha AND ID_Usuario = 1"
-    df = conn.query(query, params={"fecha": hoy}, ttl=0)
+    query = "SELECT Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE Fecha_Consumo = :fecha AND ID_Usuario = :uid"
+    df = conn.query(query, params={"fecha": hoy, "uid": user_id}, ttl=0)
     
     historial = []
     totales = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
     
     for index, row in df.iterrows():
-        historial.append({
-            "nombre_plato": row["Nombre_Plato"], 
-            "calorias": row["Calorias"], 
-            "proteinas": row["Proteinas"], 
-            "grasas": row["Grasas"], 
-            "carbos": row["Carbos"]
-        })
+        historial.append(row.to_dict())
         totales["calorias"] += row["Calorias"]
         totales["proteinas"] += row["Proteinas"]
         totales["grasas"] += row["Grasas"]
         totales["carbos"] += row["Carbos"]
-        
     return totales, historial
 
-def obtener_historial_completo_df():
+def obtener_historial_grafico():
     conn = get_db_connection()
-    query = "SELECT Fecha_Consumo, SUM(Calorias) as Total_Calorias FROM Comidas WHERE ID_Usuario=1 GROUP BY Fecha_Consumo ORDER BY Fecha_Consumo"
-    return conn.query(query, ttl=0)
+    user_id = st.session_state['user_info']['id_usuario']
+    query = "SELECT Fecha_Consumo, SUM(Calorias) as Total_Calorias FROM Comidas WHERE ID_Usuario=:uid GROUP BY Fecha_Consumo ORDER BY Fecha_Consumo"
+    return conn.query(query, params={"uid": user_id}, ttl=0)
 
-def obtener_todo_historial_csv():
-    conn = get_db_connection()
-    query = "SELECT Fecha_Consumo, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE ID_Usuario=1 ORDER BY Fecha_Consumo DESC"
-    return conn.query(query, ttl=0)
-
-# =================================================
-# ESTILOS
-# =================================================
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-.stApp { background: linear-gradient(135deg, #0f172a, #020617); color: #f8fafc; }
-[data-testid="stSidebar"] { background: #020617; border-right: 1px solid rgba(255,255,255,0.05); }
-.stButton > button { width: 100%; background: linear-gradient(135deg, #10B981, #059669); color: white; border-radius: 12px; padding: 12px; font-weight: 600; border: none; margin-top: 6px; }
-.stButton > button:hover { background: linear-gradient(135deg, #34D399, #10B981); }
-.card { background: rgba(30,41,59,0.65); border-radius: 18px; padding: 26px; margin-bottom: 22px; border: 1px solid rgba(255,255,255,0.05); }
-[data-testid="stMetric"] { background: rgba(30,41,59,0.6); padding: 16px; border-radius: 14px; text-align: center; }
-.stProgress > div > div > div > div { background-color: #10B981; }
-img { border-radius: 16px; }
-footer {visibility: hidden;}
-.disclaimer { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 50px; }
-</style>
-""", unsafe_allow_html=True)
-
-# =================================================
-# SESSION STATE
-# =================================================
-if "pagina" not in st.session_state:
-    st.session_state.pagina = "Inicio"
-
-if "usuario" not in st.session_state or st.session_state.usuario is None:
-    try:
-        perfil_db = cargar_perfil_bd()
-        if perfil_db:
-            st.session_state.usuario = perfil_db
-        else:
-            st.session_state.usuario = None
-    except:
-        st.session_state.usuario = None
-
-try:
-    totales_hoy, historial_hoy = leer_progreso_hoy_bd()
-except:
-    totales_hoy = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
-    historial_hoy = []
-
-st.session_state.diario = {
-    "fecha": datetime.date.today(),
-    "calorias": totales_hoy["calorias"],
-    "proteinas": totales_hoy["proteinas"],
-    "grasas": totales_hoy["grasas"],
-    "carbos": totales_hoy["carbos"],
-    "historial": historial_hoy
-}
-
-# =================================================
-# GEMINI CONFIG
-# =================================================
-try:
-    genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-except:
-    pass
-
-# =================================================
-# FUNCIONES IA
-# =================================================
-def analizar_comida(image: Image.Image):
+def analizar_comida_ia(image):
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
     image_bytes = buffer.getvalue()
-
     prompt = """
     Analiza la comida y devuelve SOLO este JSON válido:
-    {
-      "nombre_plato": "string",
-      "calorias": number,
-      "proteinas": number,
-      "grasas": number,
-      "carbos": number
-    }
+    {"nombre_plato": "string", "calorias": number, "proteinas": number, "grasas": number, "carbos": number}
     """
-
     intentos = 0
-    max_intentos = 2
-    
-    # Intento 1: Modelo Flash 2.5
-    while intentos < max_intentos:
+    while intentos < 2:
         try:
             model = genai.GenerativeModel("gemini-2.5-flash")
             response = model.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
-            limpio = response.text.replace("```json", "").replace("```", "").strip()
-            return json.loads(limpio)
+            return json.loads(response.text.replace("```json", "").replace("```", "").strip())
         except Exception as e:
-            if "429" in str(e): 
-                time.sleep(5)
-                intentos += 1
-            elif "API_KEY" in str(e):
-                raise e
-            else:
-                break
-
-    # Intento 2: Modelo Flash 2.0 (Backup)
+            if "429" in str(e): time.sleep(5); intentos += 1
+            elif "API_KEY" in str(e): raise e
+            else: break
+    # Fallback
     try:
-        model_backup = genai.GenerativeModel("gemini-2.0-flash")
-        response = model_backup.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
-        limpio = response.text.replace("```json", "").replace("```", "").strip()
-        return json.loads(limpio)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        response = model.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
+        return json.loads(response.text.replace("```json", "").replace("```", "").strip())
     except Exception as e:
         raise e
 
-def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
+def calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo):
     tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
-    mapa_actividad = {
-        "Sedentario (0 días)": 1.2, "Ligero (1-2 días)": 1.375,
-        "Moderado (3-4 días)": 1.55, "Activo (5-6 días)": 1.725,
-        "Muy activo (7 días)": 1.9
-    }
-    factor = mapa_actividad.get(actividad, 1.2)
-    calorias_mantenimiento = tmb * factor
-    calorias_final = calorias_mantenimiento
-    proteinas_gramos_kg = 2.0
-
-    if objetivo == "ganar musculo":
-        calorias_final += 300; proteinas_gramos_kg = 2.2
-    elif objetivo == "perder grasa":
-        calorias_final -= 400; proteinas_gramos_kg = 2.3
-    elif objetivo == "recomposicion corporal":
-        calorias_final -= 100; proteinas_gramos_kg = 2.4
-    elif objetivo == "mantener fisico":
-        calorias_final = calorias_mantenimiento; proteinas_gramos_kg = 1.8
-
-    proteinas = peso * proteinas_gramos_kg
-    grasas = peso * 0.9
-    calorias_restantes = calorias_final - (proteinas * 4 + grasas * 9)
-    carbos = calorias_restantes / 4
-
+    mapa = {"Sedentario": 1.2, "Ligero": 1.375, "Moderado": 1.55, "Activo": 1.725, "Muy activo": 1.9}
+    factor = 1.2
+    for k, v in mapa.items():
+        if k in actividad: factor = v
+            
+    calorias = tmb * factor
+    prot_g_kg = 2.0
+    if objetivo == "ganar musculo": calorias += 300; prot_g_kg = 2.2
+    elif objetivo == "perder grasa": calorias -= 400; prot_g_kg = 2.3
+    elif objetivo == "recomposicion corporal": calorias -= 100; prot_g_kg = 2.4
+    elif objetivo == "mantener fisico": prot_g_kg = 1.8
+    
     return {
-        "calorias": int(calorias_final), "proteinas": int(proteinas),
-        "grasas": int(grasas), "carbos": int(carbos)
+        "calorias": int(calorias), "proteinas": int(peso * prot_g_kg),
+        "grasas": int(peso * 0.9), "carbos": int((calorias - (peso * prot_g_kg * 4 + peso * 0.9 * 9)) / 4)
     }
 
 # =================================================
-# INTERFAZ
+# SIDEBAR NAVEGACIÓN
 # =================================================
 with st.sidebar:
     st.title("MacroRecioIA")
-    st.caption("Nutrición inteligente con IA")
-    if st.button("🏠 Inicio"): st.session_state.pagina = "Inicio"
-    if st.button("👤 Perfil"): st.session_state.pagina = "Perfil"
-    if st.button("📸 Analizar comida"): st.session_state.pagina = "Escaner"
-    if st.button("📊 Progreso"): st.session_state.pagina = "Progreso"
+    username = st.session_state['user_info']['username']
+    st.write(f"Hola, **{username}** 👋")
     
-    st.markdown("---")
-    st.caption("v1.2.0 - Pro DB")
+    selected = option_menu(
+        menu_title=None,
+        options=["Inicio", "Perfil", "Escaner", "Progreso"],
+        icons=["house", "person", "camera", "graph-up"],
+        default_index=0,
+    )
+    
+    if st.button("Cerrar Sesión"):
+        st.session_state['login_status'] = False
+        st.session_state['user_info'] = None
+        st.rerun()
 
-if st.session_state.pagina == "Inicio":
-    st.markdown("<div class='card'><h1>Bienvenido a MacroRecioIA</h1><p style='font-size:18px;'>Tu entrenador nutricional inteligente.</p></div>", unsafe_allow_html=True)
+# =================================================
+# PÁGINAS DEL USUARIO
+# =================================================
+
+if selected == "Inicio":
+    st.markdown("<div class='card'><h1>Bienvenido a tu Panel</h1><p>Control total de tu nutrición.</p></div>", unsafe_allow_html=True)
+    
+    # Métricas rápidas de hoy
+    totales, _ = leer_progreso_hoy()
+    meta_cal = st.session_state['user_info'].get('meta_calorias') or 0
+    
+    col1, col2 = st.columns(2)
+    col1.metric("Calorías Hoy", totales['calorias'], f"Meta: {meta_cal}")
+    if meta_cal > 0:
+        col2.progress(min(totales['calorias'] / meta_cal, 1.0))
+    
+    # Sección Tecnológica
+    st.markdown("---")
+    st.markdown("<div style='text-align: center; color: #94a3b8;'><h4>🌟 Potenciado por Tecnología de Punta</h4></div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_container_width=True)
-    c2.image("https://images.unsplash.com/photo-1517836357463-d25dfeac3438", use_container_width=True)
-    c3.image("https://images.unsplash.com/photo-1504674900247-0877df9cc836", use_container_width=True)
-    st.markdown("<div class='card' style='text-align:center;'><h3>🌱 El progreso es constante</h3></div>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    c1.markdown("<div class='card'><h2>¿Para qué sirve?</h2><ul><li>📊 Macros personalizados</li><li>📸 Analizar comidas con IA</li><li>📈 Ver progreso</li></ul></div>", unsafe_allow_html=True)
-    c2.markdown("<div class='card'><h2>¿Cómo se usa?</h2><ol><li>Completá tu perfil</li><li>Escaneá comidas</li><li>Seguimiento visual</li></ol></div>", unsafe_allow_html=True)
+    c1.markdown("<div class='card' style='text-align:center;'><h2>🧠</h2><p>Gemini 2.5 Flash</p></div>", unsafe_allow_html=True)
+    c2.markdown("<div class='card' style='text-align:center;'><h2>⚡</h2><p>Supabase Cloud</p></div>", unsafe_allow_html=True)
+    c3.markdown("<div class='card' style='text-align:center;'><h2>🔒</h2><p>Datos Privados</p></div>", unsafe_allow_html=True)
 
-    # --- AGREGADO PROFESIONAL Y LLAMATIVO ---
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #94a3b8; margin-bottom: 20px;">
-        <h4>🌟 Potenciado por Tecnología de Punta</h4>
-    </div>
-    """, unsafe_allow_html=True)
+elif selected == "Perfil":
+    st.markdown("<div class='card'><h2>Tu Perfil Nutricional</h2></div>", unsafe_allow_html=True)
+    u = st.session_state['user_info']
     
-    col1, col2, col3 = st.columns(3)
-    col1.markdown("""
-    <div class="card" style="text-align:center; padding: 10px;">
-        <h2 style="margin:0;">🧠</h2>
-        <p style="font-weight:bold; margin:0;">Gemini 2.5 Flash</p>
-        <p style="font-size:12px; margin:0;">IA de Google de última generación</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col2.markdown("""
-    <div class="card" style="text-align:center; padding: 10px;">
-        <h2 style="margin:0;">⚡</h2>
-        <p style="font-weight:bold; margin:0;">Supabase Cloud</p>
-        <p style="font-size:12px; margin:0;">Base de datos en tiempo real</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    col3.markdown("""
-    <div class="card" style="text-align:center; padding: 10px;">
-        <h2 style="margin:0;">🔒</h2>
-        <p style="font-weight:bold; margin:0;">Privacidad Total</p>
-        <p style="font-size:12px; margin:0;">Tus datos están encriptados</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-elif st.session_state.pagina == "Perfil":
-    st.markdown("<div class='card'><h2>Perfil nutricional</h2></div>", unsafe_allow_html=True)
-    with st.form("perfil"):
+    with st.form("perfil_form"):
         c1, c2 = st.columns(2)
-        with c1:
-            genero = st.selectbox("Género", ["Hombre", "Mujer"])
-            edad = st.number_input("Edad", 15, 90, 25)
-            peso = st.number_input("Peso (kg)", 40, 150, 70)
-        with c2:
-            altura = st.number_input("Altura (cm)", 140, 220, 170)
-            actividad = st.selectbox("Nivel de actividad", ["Sedentario (0 días)", "Ligero (1-2 días)", "Moderado (3-4 días)", "Activo (5-6 días)", "Muy activo (7 días)"])
-            objetivo = st.selectbox("Objetivo", ["ganar musculo", "perder grasa", "recomposicion corporal", "mantener fisico"])
+        genero = c1.selectbox("Género", ["Hombre", "Mujer"], index=0 if u.get('genero') == 'Hombre' else 1)
+        edad = c1.number_input("Edad", 15, 90, u.get('edad') or 25)
+        peso = c1.number_input("Peso (kg)", 40, 150, float(u.get('peso') or 70))
         
-        if objetivo == "ganar musculo": st.info("💡 Superávit calórico ligero + Proteína moderada.")
-        elif objetivo == "perder grasa": st.info("💡 Déficit calórico controlado + Proteína alta.")
-        elif objetivo == "recomposicion corporal": st.info("💡 Normocalórica + Proteína muy alta.")
-        elif objetivo == "mantener fisico": st.info("💡 Calorías de mantenimiento.")
+        altura = c2.number_input("Altura (cm)", 140, 220, float(u.get('altura') or 170))
+        actividad = c2.selectbox("Actividad", ["Sedentario", "Ligero", "Moderado", "Activo", "Muy activo"], index=0)
+        objetivo = c2.selectbox("Objetivo", ["ganar musculo", "perder grasa", "recomposicion corporal", "mantener fisico"])
         
-        ok = st.form_submit_button("Calcular requerimientos")
+        if st.form_submit_button("Calcular y Guardar"):
+            macros = calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo)
+            # Guardar todo en BD y Session
+            datos_completos = {
+                'genero': genero, 'edad': edad, 'peso': peso, 'altura': altura,
+                'actividad': actividad, 'objetivo': objetivo,
+                'meta_calorias': macros['calorias'], 'meta_proteinas': macros['proteinas'],
+                'meta_grasas': macros['grasas'], 'meta_carbos': macros['carbos']
+            }
+            guardar_perfil_completo(datos_completos)
+            st.success("✅ Perfil actualizado correctamente.")
+            st.rerun()
 
-    if ok:
-        macros = calcular_macros(genero, edad, peso, altura, actividad, objetivo)
-        st.session_state.usuario = macros
-        guardar_perfil_bd({
-            'genero': genero, 'edad': edad, 'peso': peso, 'altura': altura,
-            'actividad': actividad, 'objetivo': objetivo,
-            'calorias': macros['calorias'], 'proteinas': macros['proteinas'],
-            'grasas': macros['grasas'], 'carbos': macros['carbos']
-        })
-
-    if st.session_state.usuario:
-        u = st.session_state.usuario
+    if u.get('meta_calorias'):
+        st.markdown("### Tus Metas Diarias")
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("🔥 Calorías", u["calorias"])
-        c2.metric("🥩 Proteínas", f"{u['proteinas']}g")
-        c3.metric("🥑 Grasas", f"{u['grasas']}g")
-        c4.metric("🍞 Carbos", f"{u['carbos']}g")
+        c1.metric("🔥 Calorías", u['meta_calorias'])
+        c2.metric("🥩 Proteínas", f"{u['meta_proteinas']}g")
+        c3.metric("🥑 Grasas", f"{u['meta_grasas']}g")
+        c4.metric("🍞 Carbos", f"{u['meta_carbos']}g")
 
-elif st.session_state.pagina == "Escaner":
-    if not st.session_state.usuario:
-        st.warning("Primero configurá tu perfil")
-        st.stop()
-
-    st.markdown("<div class='card'><h2>Escanear comida</h2></div>", unsafe_allow_html=True)
-    img = st.file_uploader("Subí una foto", ["jpg", "jpeg", "png"])
+elif selected == "Escaner":
+    st.markdown("<div class='card'><h2>Escanear Comida</h2></div>", unsafe_allow_html=True)
+    img = st.file_uploader("Sube una foto", type=["jpg", "png", "jpeg"])
+    
     if img:
-        image = Image.open(img).convert("RGB")
-        st.image(image, width=320)
-        if st.button("Analizar comida"):
-            with st.spinner("Analizando con IA..."):
+        st.image(img, width=300)
+        if st.button("Analizar con IA"):
+            with st.spinner("Procesando..."):
                 try:
-                    data = analizar_comida(image)
+                    data = analizar_comida_ia(Image.open(img))
                     
                     st.markdown(f"### 🍽️ {data['nombre_plato']}")
-                    col1, col2, col3, col4 = st.columns(4)
-                    col1.metric("🔥 Calorías", data['calorias'])
-                    col2.metric("🥩 Proteínas", f"{data['proteinas']}g")
-                    col3.metric("🥑 Grasas", f"{data['grasas']}g")
-                    col4.metric("🍞 Carbos", f"{data['carbos']}g")
-
-                    u = st.session_state.usuario
-                    d = st.session_state.diario
-                    if u and (d["calorias"] + data["calorias"] > u["calorias"]):
-                        exceso = (d["calorias"] + data["calorias"]) - u["calorias"]
-                        st.warning(f"⚠️ ¡Cuidado! Si comes esto excederás tu meta diaria por {exceso} calorías.")
-
-                    guardar_comida_bd(data)
-                    for k in ["calorias", "proteinas", "grasas", "carbos"]: d[k] += data[k]
-                    d["historial"].append(data)
-                    st.success(f"✅ {data['nombre_plato']} agregado a tu historial")
-                
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.metric("Calorías", data['calorias'])
+                    c2.metric("Proteínas", f"{data['proteinas']}g")
+                    c3.metric("Grasas", f"{data['grasas']}g")
+                    c4.metric("Carbos", f"{data['carbos']}g")
+                    
+                    # Alerta de exceso
+                    totales, _ = leer_progreso_hoy()
+                    meta = st.session_state['user_info'].get('meta_calorias') or 2000
+                    if (totales['calorias'] + data['calorias']) > meta:
+                        st.warning(f"⚠️ Atención: Excederás tu meta por {(totales['calorias'] + data['calorias']) - meta} kcal.")
+                    
+                    guardar_comida(data)
+                    st.success("Comida guardada en tu historial.")
                 except Exception as e:
-                    if "API key expired" in str(e):
-                        st.error("🚨 TU CLAVE DE API HA CADUCADO.")
-                    elif "429" in str(e):
-                        st.error("⏳ Servidor ocupado. Espera un minuto.")
-                    else:
-                        st.error(f"❌ Error: {e}")
+                    st.error(f"Error: {e}")
 
-elif st.session_state.pagina == "Progreso":
-    if not st.session_state.usuario:
-        st.warning("Completá tu perfil primero para ver el progreso.")
-        st.stop()
-    u = st.session_state.usuario
-    d = st.session_state.diario
-    st.markdown("<div class='card'><h2>Progreso diario</h2></div>", unsafe_allow_html=True)
-    progreso = min(d["calorias"] / u["calorias"], 1.0) if u["calorias"] > 0 else 0
-    st.progress(progreso)
+elif selected == "Progreso":
+    st.markdown("<div class='card'><h2>Tu Progreso</h2></div>", unsafe_allow_html=True)
+    totales, historial = leer_progreso_hoy()
+    meta = st.session_state['user_info'].get('meta_calorias') or 1
+    
+    st.progress(min(totales['calorias']/meta, 1.0))
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("🔥 Consumidas", d["calorias"], f"Meta: {u['calorias']}")
-    c2.metric("🥩 Proteínas", d["proteinas"], f"Meta: {u['proteinas']}")
-    c3.metric("🥑 Grasas", d["grasas"], f"Meta: {u['grasas']}")
-    c4.metric("🍞 Carbos", d["carbos"], f"Meta: {u['carbos']}")
+    c1.metric("Consumidas", totales['calorias'], f"/{meta}")
+    c2.metric("Proteínas", totales['proteinas'])
+    c3.metric("Grasas", totales['grasas'])
+    c4.metric("Carbos", totales['carbos'])
     
-    st.markdown("### 📈 Tendencia")
-    try:
-        df_historial = obtener_historial_completo_df()
-        if not df_historial.empty:
-            st.line_chart(df_historial.set_index('Fecha_Consumo'))
-        else:
-            st.info("Aún no hay datos suficientes.")
-    except:
-        pass
-
-    if d["historial"]:
-        st.markdown("### 🍽 Historial de Hoy")
-        for h in d["historial"]:
-            st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
-    
-    st.markdown("### 💾 Exportar Datos")
-    try:
-        df_todo = obtener_todo_historial_csv()
-        csv = df_todo.to_csv(index=False).encode('utf-8')
-        st.download_button("Descargar historial completo (CSV)", csv, 'historial.csv', 'text/csv')
-    except:
-        pass
+    st.subheader("📈 Tendencia")
+    df_graf = obtener_historial_grafico()
+    if not df_graf.empty:
+        st.line_chart(df_graf.set_index('Fecha_Consumo'))
+    else:
+        st.info("No hay datos suficientes para mostrar gráficos.")
+        
+    st.subheader("🍽️ Comidas de Hoy")
+    for h in historial:
+        st.text(f"{h['Nombre_Plato']} - {h['Calorias']} kcal")
 
 st.markdown("<div class='disclaimer'>Nota: Esta aplicación utiliza IA. Información estimativa. Puedes consultar a un profesional de la salud.</div>", unsafe_allow_html=True)
