@@ -322,7 +322,7 @@ with st.sidebar:
     st.caption("v1.2.0 - Pro DB")
 
 if st.session_state.pagina == "Inicio":
-    st.markdown("<div class='card'><h1>Bienvenido a MacroRecioIA 💪</h1><p style='font-size:18px;'>Tu entrenador nutricional inteligente.</p></div>", unsafe_allow_html=True)
+    st.markdown("<div class='card'><h1>Bienvenido a MacroRecioIA</h1><p style='font-size:18px;'>Tu entrenador nutricional inteligente.</p></div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_container_width=True)
     c2.image("https://images.unsplash.com/photo-1517836357463-d25dfeac3438", use_container_width=True)
