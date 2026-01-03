@@ -20,16 +20,18 @@ st.set_page_config(
 # =================================================
 def get_db_connection():
     try:
-        # Reemplaza 'NOMBRE_QUE_FUNCIONO' por lo que dice la casilla 1 de tu prueba exitosa
-        server_name = 'Martinovichgg' 
-        
-        conn = pyodbc.connect(
-            'DRIVER={ODBC Driver 17 for SQL Server};'
-            f'SERVER=.;' 
-            'DATABASE=MacroRecioBD;'
-            'Trusted_Connection=yes;',
-            timeout=5
+        # Usamos 127.0.0.1,1433 para saltar problemas de DNS
+        # Agregamos TrustServerCertificate=yes para evitar errores de SSL local
+        connection_string = (
+            "DRIVER={ODBC Driver 17 for SQL Server};"
+            "SERVER=127.0.0.1,1433;"
+            "DATABASE=MacroRecioBD;"
+            "Trusted_Connection=yes;"
+            "TrustServerCertificate=yes;" 
+            "Encrypt=no;"
         )
+        
+        conn = pyodbc.connect(connection_string, timeout=10)
         return conn
     except Exception as e:
         st.error(f"❌ Error detallado: {e}")
@@ -484,6 +486,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
