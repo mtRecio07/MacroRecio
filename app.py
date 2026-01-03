@@ -37,8 +37,8 @@ html, body, [class*="css"] {
 
 /* --- BARRA LATERAL LIQUID GLASS --- */
 [data-testid="stSidebar"] {
-    background-color: rgba(15, 23, 42, 0.65); /* Semi-transparente */
-    backdrop-filter: blur(16px); /* Efecto vidrio esmerilado */
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(16px);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -174,6 +174,7 @@ def login_usuario(username, password):
     
     if not df.empty:
         user_data = df.iloc[0].to_dict()
+        # Normalizamos claves a minúscula porque Postgres puede devolver mayusculas o minusculas
         return {k.lower(): v for k, v in user_data.items()}
     return None
 
@@ -282,12 +283,28 @@ def leer_progreso_hoy_usuario_actual():
     
     historial = []
     totales = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
+    
+    # CORRECCIÓN AQUÍ: Usamos nombres en minúscula para acceder a las columnas
     for index, row in df.iterrows():
-        historial.append(row.to_dict())
-        totales["calorias"] += row["Calorias"]
-        totales["proteinas"] += row["Proteinas"]
-        totales["grasas"] += row["Grasas"]
-        totales["carbos"] += row["Carbos"]
+        # Postgres suele devolver nombres de columnas en minúscula
+        nombre = row.get("nombre_plato") or row.get("Nombre_Plato")
+        cal = row.get("calorias") or row.get("Calorias") or 0
+        prot = row.get("proteinas") or row.get("Proteinas") or 0
+        fat = row.get("grasas") or row.get("Grasas") or 0
+        carb = row.get("carbos") or row.get("Carbos") or 0
+        
+        historial.append({
+            "nombre_plato": nombre, 
+            "calorias": cal, 
+            "proteinas": prot, 
+            "grasas": fat, 
+            "carbos": carb
+        })
+        totales["calorias"] += cal
+        totales["proteinas"] += prot
+        totales["grasas"] += fat
+        totales["carbos"] += carb
+        
     return totales, historial
 
 def obtener_historial_grafico():
@@ -562,14 +579,16 @@ elif selected == "Progreso":
     st.markdown("### 📈 Tendencia")
     try:
         df_historial = obtener_historial_grafico()
-        if not df_historial.empty: st.line_chart(df_historial.set_index('Fecha_Consumo'))
+        # CORRECCIÓN AQUÍ: Usar minúscula para el índice de fecha si es necesario
+        col_fecha = 'fecha_consumo' if 'fecha_consumo' in df_historial.columns else 'Fecha_Consumo'
+        if not df_historial.empty: st.line_chart(df_historial.set_index(col_fecha))
         else: st.info("Aún no hay datos suficientes para mostrar gráficos.")
     except: pass
 
     if historial:
         st.markdown("### 🍽 Historial de Hoy")
         for h in historial:
-            st.write(f"- **{h['Nombre_Plato']}** — {h['Calorias']} kcal (P:{h['Proteinas']} G:{h['Grasas']} C:{h['Carbos']})")
+            st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
     
     st.markdown("### 💾 Exportar Datos")
     try:
