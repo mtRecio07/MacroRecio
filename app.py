@@ -22,13 +22,14 @@ def get_db_connection():
     try:
         connection_string = (
             "DRIVER={ODBC Driver 17 for SQL Server};"
-            "SERVER=Martinovichgg;"
+            "SERVER=Martinovichgg,1433;"
             "DATABASE=MacroRecioBD;"
             "Trusted_Connection=yes;"
             "TrustServerCertificate=yes;"
+            "Connection Timeout=10;"
         )
 
-        conn = pyodbc.connect(connection_string, timeout=10)
+        conn = pyodbc.connect(connection_string)
         return conn
 
     except Exception as e:
@@ -485,6 +486,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
