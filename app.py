@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 # =================================================
-# SQLITE - CONFIGURACIÓN AUTOMÁTICA
+# SQLITE CONFIG (AUTO)
 # =================================================
 DB_PATH = "database/macrorecio.db"
 
@@ -67,7 +67,7 @@ def get_db_connection():
     return conn
 
 # =================================================
-# FUNCIONES BD
+# DB FUNCTIONS
 # =================================================
 def guardar_perfil_bd(datos):
     conn = get_db_connection()
@@ -107,10 +107,12 @@ def guardar_perfil_bd(datos):
 def cargar_perfil_bd():
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("""
     SELECT Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos
     FROM Usuarios WHERE ID_Usuario=1
     """)
+
     row = cursor.fetchone()
     conn.close()
 
@@ -126,6 +128,7 @@ def cargar_perfil_bd():
 def guardar_comida_bd(plato):
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("""
     INSERT INTO Comidas
     (ID_Usuario, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos, Fecha_Consumo)
@@ -138,17 +141,20 @@ def guardar_comida_bd(plato):
         plato['carbos'],
         date.today().isoformat()
     ))
+
     conn.commit()
     conn.close()
 
 def leer_progreso_hoy_bd():
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("""
     SELECT Nombre_Plato, Calorias, Proteinas, Grasas, Carbos
     FROM Comidas
     WHERE Fecha_Consumo=? AND ID_Usuario=1
     """, (date.today().isoformat(),))
+
     rows = cursor.fetchall()
     conn.close()
 
@@ -171,28 +177,31 @@ def leer_progreso_hoy_bd():
     return totales, historial
 
 # =================================================
-# ESTILOS
+# ESTILOS PREMIUM (SIN CAMBIOS)
 # =================================================
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .stApp { background: linear-gradient(135deg, #0f172a, #020617); color: #f8fafc; }
-[data-testid="stSidebar"] { background: #020617; }
+[data-testid="stSidebar"] { background: #020617; border-right: 1px solid rgba(255,255,255,0.05); }
 .stButton > button {
-    width: 100%;
-    background: linear-gradient(135deg, #10B981, #059669);
-    color: white;
-    border-radius: 12px;
-    padding: 12px;
-    font-weight: 600;
+    width: 100%; background: linear-gradient(135deg, #10B981, #059669);
+    color: white; border-radius: 12px; padding: 12px;
+    font-weight: 600; border: none; margin-top: 6px;
 }
+.stButton > button:hover { background: linear-gradient(135deg, #34D399, #10B981); }
 .card {
     background: rgba(30,41,59,0.65);
-    border-radius: 18px;
-    padding: 26px;
-    margin-bottom: 22px;
+    border-radius: 18px; padding: 26px; margin-bottom: 22px;
+    border: 1px solid rgba(255,255,255,0.05);
 }
+[data-testid="stMetric"] {
+    background: rgba(30,41,59,0.6);
+    padding: 16px; border-radius: 14px; text-align: center;
+}
+.stProgress > div > div > div > div { background-color: #10B981; }
+img { border-radius: 16px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -202,7 +211,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 if "pagina" not in st.session_state:
     st.session_state.pagina = "Inicio"
 
-if "usuario" not in st.session_state:
+if "usuario" not in st.session_state or st.session_state.usuario is None:
     st.session_state.usuario = cargar_perfil_bd()
 
 totales_hoy, historial_hoy = leer_progreso_hoy_bd()
@@ -220,77 +229,25 @@ st.session_state.diario = {
 # =================================================
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
-def analizar_comida(image):
-    model = genai.GenerativeModel("models/gemini-1.5-flash")
+def analizar_comida(image: Image.Image):
+    model = genai.GenerativeModel("gemini-1.5-flash-latest")
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
+    image_bytes = buffer.getvalue()
+
+    prompt = """
+Analiza la comida y devuelve SOLO este JSON válido:
+{
+  "nombre_plato": "string",
+  "calorias": number,
+  "proteinas": number,
+  "grasas": number,
+  "carbos": number
+}
+"""
     response = model.generate_content([
-        "Devuelve SOLO este JSON válido con valores nutricionales:",
-        {"mime_type": "image/jpeg", "data": buffer.getvalue()}
+        prompt,
+        {"mime_type": "image/jpeg", "data": image_bytes}
     ])
     limpio = response.text.replace("```json", "").replace("```", "").strip()
     return json.loads(limpio)
-
-# =================================================
-# SIDEBAR
-# =================================================
-with st.sidebar:
-    st.title("💪 MacroRecioIA")
-    if st.button("🏠 Inicio"): st.session_state.pagina = "Inicio"
-    if st.button("👤 Perfil"): st.session_state.pagina = "Perfil"
-    if st.button("📸 Analizar comida"): st.session_state.pagina = "Escaner"
-    if st.button("📊 Progreso"): st.session_state.pagina = "Progreso"
-
-# =================================================
-# PÁGINAS
-# =================================================
-if st.session_state.pagina == "Inicio":
-    st.markdown("<div class='card'><h1>Bienvenido a MacroRecioIA 💪</h1></div>", unsafe_allow_html=True)
-
-elif st.session_state.pagina == "Perfil":
-    with st.form("perfil"):
-        genero = st.selectbox("Género", ["Hombre", "Mujer"])
-        edad = st.number_input("Edad", 15, 90, 25)
-        peso = st.number_input("Peso", 40, 150, 70)
-        altura = st.number_input("Altura", 140, 220, 170)
-        actividad = st.selectbox("Actividad", [
-            "Sedentario (0 días)",
-            "Ligero (1-2 días)",
-            "Moderado (3-4 días)",
-            "Activo (5-6 días)",
-            "Muy activo (7 días)"
-        ])
-        objetivo = st.selectbox("Objetivo", [
-            "ganar musculo", "perder grasa",
-            "recomposicion corporal", "mantener fisico"
-        ])
-        ok = st.form_submit_button("Calcular requerimientos")
-
-    if ok:
-        calorias = int(peso * 30)
-        macros = {
-            "calorias": calorias,
-            "proteinas": int(peso * 2),
-            "grasas": int(peso * 0.9),
-            "carbos": int((calorias - (peso*2*4 + peso*0.9*9)) / 4)
-        }
-        st.session_state.usuario = macros
-        guardar_perfil_bd({
-            "genero": genero, "edad": edad, "peso": peso,
-            "altura": altura, "actividad": actividad,
-            "objetivo": objetivo, **macros
-        })
-        st.success("Perfil guardado")
-
-elif st.session_state.pagina == "Escaner":
-    img = st.file_uploader("Subí una foto", ["jpg", "png"])
-    if img and st.button("Analizar"):
-        data = analizar_comida(Image.open(img))
-        guardar_comida_bd(data)
-        st.success(data["nombre_plato"])
-
-elif st.session_state.pagina == "Progreso":
-    d = st.session_state.diario
-    st.metric("Calorías hoy", d["calorias"])
-    for h in d["historial"]:
-        st.write(h)
