@@ -290,7 +290,8 @@ except:
 # FUNCIONES
 # =================================================
 def analizar_comida(image: Image.Image):
-    model = genai.GenerativeModel("gemini-1.5-flash-latest")
+    # CORRECCIÓN: Usamos el nombre estable del modelo para evitar errores 404
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
@@ -494,7 +495,7 @@ elif st.session_state.pagina == "Perfil":
             'grasas': macros['grasas'], 'carbos': macros['carbos']
         }
         guardar_perfil_bd(datos_para_bd)
-        # SE ELIMINÓ EL MENSAJE st.success AQUÍ COMO PEDISTE
+        # Se eliminó el mensaje de éxito aquí como solicitaste
 
     if st.session_state.usuario:
         u = st.session_state.usuario
