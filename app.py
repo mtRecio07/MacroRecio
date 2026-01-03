@@ -290,8 +290,9 @@ except:
 # FUNCIONES
 # =================================================
 def analizar_comida(image: Image.Image):
-    # CORRECCIÓN: Usamos "gemini-1.5-flash-001" que es más específico y evita errores de alias
-    model = genai.GenerativeModel("gemini-1.5-flash-001")
+    # Usamos el nombre base "gemini-1.5-flash"
+    # IMPORTANTE: Esto solo funciona si requirements.txt tiene google-generativeai>=0.7.0
+    model = genai.GenerativeModel("gemini-1.5-flash")
 
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
