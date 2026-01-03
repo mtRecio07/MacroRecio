@@ -22,7 +22,7 @@ def get_db_connection():
     try:
         conn = pyodbc.connect(
             'DRIVER={ODBC Driver 17 for SQL Server};'
-            'SERVER=MARTINOVICHGG/Paulo;'  # <--- CAMBIADO SEGÚN TU IMAGEN
+            'SERVER=.;'  # <--- CAMBIADO SEGÚN TU IMAGEN
             'DATABASE=MacroRecioBD;'
             'Trusted_Connection=yes;'
         )
@@ -480,6 +480,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
