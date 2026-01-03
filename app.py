@@ -282,11 +282,8 @@ st.session_state.diario = {
 # GEMINI
 # =================================================
 try:
-    # Busca la clave en los Secretos de Streamlit Cloud
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except:
-    # No mostramos error aquí para no ensuciar la pantalla al inicio,
-    # el error saltará cuando intenten usar el escáner si falta la clave.
     pass
 
 # =================================================
@@ -497,7 +494,7 @@ elif st.session_state.pagina == "Perfil":
             'grasas': macros['grasas'], 'carbos': macros['carbos']
         }
         guardar_perfil_bd(datos_para_bd)
-        st.success("✅ Perfil guardado en Base de Datos (SQLite)")
+        # SE ELIMINÓ EL MENSAJE st.success AQUÍ COMO PEDISTE
 
     if st.session_state.usuario:
         u = st.session_state.usuario
@@ -535,8 +532,7 @@ elif st.session_state.pagina == "Escaner":
                     
                     st.success(f"✅ {data['nombre_plato']} guardado en BD")
                 except Exception as e:
-                    # AQUÍ ESTÁ EL CAMBIO PARA VER EL ERROR REAL:
-                    st.error(f"❌ Ocurrió un error: {e}")
+                    st.error("Error al analizar la imagen. Intenta de nuevo.")
 
 elif st.session_state.pagina == "Progreso":
     if not st.session_state.usuario:
