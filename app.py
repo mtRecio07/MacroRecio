@@ -20,15 +20,18 @@ st.set_page_config(
 # =================================================
 def get_db_connection():
     try:
-        conn = pyodbc.connect(
-            'DRIVER={ODBC Driver 17 for SQL Server};'
-            'SERVER=.;'  # <--- CAMBIADO SEGÚN TU IMAGEN
-            'DATABASE=MacroRecioBD;'
-            'Trusted_Connection=yes;'
+        # Usamos 127.0.0.1,1433 para forzar la conexión a tu máquina en el puerto que acabamos de abrir
+        connection_string = (
+            "DRIVER={ODBC Driver 17 for SQL Server};"
+            "SERVER=127.0.0.1,1433;" 
+            "DATABASE=MacroRecioBD;"
+            "Trusted_Connection=yes;"
         )
+        
+        conn = pyodbc.connect(connection_string, timeout=5) # Timeout de 5 segundos
         return conn
     except Exception as e:
-        st.error(f"Error de conexión a BD: {e}")
+        st.error(f"❌ Error detallado: {e}")
         return None
 
 # Función para guardar el perfil en SQL Server
@@ -480,6 +483,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
