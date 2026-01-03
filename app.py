@@ -481,4 +481,4 @@ elif st.session_state.pagina == "Progreso":
     except:
         pass
 
-st.markdown("<div class='disclaimer'>Nota: Esta aplicación utiliza IA. Información estimativa. Consulta a un profesional de la salud.</div>", unsafe_allow_html=True)
+st.markdown("<div class='disclaimer'>Nota: Esta aplicación utiliza IA. Información estimativa. Puedes consultar a un profesional de la salud.</div>", unsafe_allow_html=True)
