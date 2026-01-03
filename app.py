@@ -30,6 +30,20 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .card { background: rgba(30,41,59,0.65); border-radius: 18px; padding: 26px; margin-bottom: 22px; border: 1px solid rgba(255,255,255,0.05); }
 [data-testid="stMetric"] { background: rgba(30,41,59,0.6); padding: 16px; border-radius: 14px; text-align: center; }
 .stProgress > div > div > div > div { background-color: #10B981; }
+/* Botones estilo original */
+.stButton > button {
+    width: 100%;
+    background: linear-gradient(135deg, #10B981, #059669);
+    color: white;
+    border-radius: 12px;
+    padding: 12px;
+    font-weight: 600;
+    border: none;
+    margin-top: 6px;
+}
+.stButton > button:hover {
+    background: linear-gradient(135deg, #34D399, #10B981);
+}
 img { border-radius: 16px; }
 footer {visibility: hidden;}
 .disclaimer { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 50px; }
@@ -280,7 +294,13 @@ def analizar_comida_ia(image):
 
 def calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo):
     tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
-    mapa = {"Sedentario (0 días)": 1.2, "Ligero (1-2 días)": 1.375, "Moderado (3-4 días)": 1.55, "Activo (5-6 días)": 1.725, "Muy activo (7 días)": 1.9}
+    mapa = {
+        "Sedentario (0 días)": 1.2,
+        "Ligero (1-2 días)": 1.375,
+        "Moderado (3-4 días)": 1.55,
+        "Activo (5-6 días)": 1.725,
+        "Muy activo (7 días)": 1.9
+    }
     factor = mapa.get(actividad, 1.2)
     
     calorias = tmb * factor
@@ -323,15 +343,53 @@ with st.sidebar:
 # =================================================
 
 if selected == "Inicio":
-    st.markdown("<div class='card'><h1>Bienvenido a MacroRecioIA</h1><p style='font-size:18px;'>Tu entrenador nutricional inteligente.</p></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="card">
+        <h1>Bienvenido a MacroRecioIA</h1>
+        <p style="font-size:18px; max-width:800px;">
+        Tu entrenador nutricional inteligente para aprender a comer mejor,
+        progresar sin extremos y mantener resultados reales.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
     c1, c2, c3 = st.columns(3)
     c1.image("https://images.unsplash.com/photo-1490645935967-10de6ba17061", use_container_width=True)
     c2.image("https://images.unsplash.com/photo-1517836357463-d25dfeac3438", use_container_width=True)
     c3.image("https://images.unsplash.com/photo-1504674900247-0877df9cc836", use_container_width=True)
-    st.markdown("<div class='card' style='text-align:center;'><h3>🌱 El progreso es constante</h3></div>", unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="card" style="text-align:center;">
+        <h3>🌱 El progreso no es perfecto, es constante</h3>
+        <p>No necesitás dietas extremas, necesitás un sistema que puedas sostener.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     c1, c2 = st.columns(2)
-    c1.markdown("<div class='card'><h2>¿Para qué sirve?</h2><ul><li>📊 Macros personalizados</li><li>📸 Analizar comidas con IA</li><li>📈 Ver progreso</li></ul></div>", unsafe_allow_html=True)
-    c2.markdown("<div class='card'><h2>¿Cómo se usa?</h2><ol><li>Completá tu perfil</li><li>Escaneá comidas</li><li>Seguimiento visual</li></ol></div>", unsafe_allow_html=True)
+
+    c1.markdown("""
+    <div class="card">
+        <h2>¿Para qué sirve?</h2>
+        <ul>
+            <li>📊 Calcular tus macros personalizados</li>
+            <li>📸 Analizar tus comidas con IA</li>
+            <li>📈 Ver tu progreso diario</li>
+            <li>🧠 Aprender hábitos saludables</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    c2.markdown("""
+    <div class="card">
+        <h2>¿Cómo se usa?</h2>
+        <ol>
+            <li>Completá tu perfil</li>
+            <li>Obtené tus requerimientos</li>
+            <li>Escaneá tus comidas</li>
+            <li>Seguimiento simple y visual</li>
+        </ol>
+    </div>
+    """, unsafe_allow_html=True)
 
     # --- AGREGADO PROFESIONAL Y LLAMATIVO ---
     st.markdown("---")
@@ -399,11 +457,12 @@ elif selected == "Perfil":
                 idx_obj = 0
             objetivo = st.selectbox("Objetivo", opciones_objetivo, index=idx_obj)
         
-        if objetivo == "ganar musculo": st.info("💡 Superávit calórico ligero + Proteína moderada.")
-        elif objetivo == "perder grasa": st.info("💡 Déficit calórico controlado + Proteína alta.")
-        elif objetivo == "recomposicion corporal": st.info("💡 Normocalórica + Proteína muy alta.")
-        elif objetivo == "mantener fisico": st.info("💡 Calorías de mantenimiento.")
+        if objetivo == "ganar musculo": st.info("💡 **Estrategia:** Superávit calórico ligero + Proteína moderada/alta para maximizar hipertrofia.")
+        elif objetivo == "perder grasa": st.info("💡 **Estrategia:** Déficit calórico controlado + Proteína alta para proteger tu masa muscular.")
+        elif objetivo == "recomposicion corporal": st.info("💡 **Estrategia:** Normocalórica o ligero déficit + Proteína muy alta para ganar músculo y perder grasa simultáneamente (ideal principiantes).")
+        elif objetivo == "mantener fisico": st.info("💡 **Estrategia:** Calorías de mantenimiento + Proteína estándar para salud y rendimiento.")
         
+        # EL BOTÓN DE ENVIAR (CLAVE PARA EL DISEÑO ORIGINAL)
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
@@ -498,7 +557,7 @@ elif selected == "Progreso":
         if not df_historial.empty:
             st.line_chart(df_historial.set_index('Fecha_Consumo'))
         else:
-            st.info("Aún no hay datos suficientes.")
+            st.info("Aún no hay datos suficientes para mostrar gráficos.")
     except:
         pass
 
