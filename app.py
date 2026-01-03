@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # =================================================
-# SQLITE (REEMPLAZO SQL SERVER – SOLO LÓGICA BD)
+# SQLITE – REEMPLAZO TOTAL DE SQL SERVER
 # =================================================
 DB_PATH = "database/macrorecio.db"
 
@@ -66,7 +66,7 @@ def init_db():
 init_db()
 
 # =================================================
-# FUNCIONES BD (MISMO COMPORTAMIENTO, SQLITE)
+# FUNCIONES BD (MISMA LÓGICA)
 # =================================================
 def guardar_perfil_bd(datos):
     conn = get_db_connection()
@@ -104,7 +104,6 @@ def guardar_perfil_bd(datos):
 def cargar_perfil_bd():
     conn = get_db_connection()
     cur = conn.cursor()
-
     cur.execute("""
     SELECT Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos
     FROM Usuarios WHERE ID_Usuario = 1
@@ -172,7 +171,7 @@ def leer_progreso_hoy_bd():
     return totales, historial
 
 # =================================================
-# ESTILOS PREMIUM (ORIGINAL – SIN TOCAR)
+# ESTILOS PREMIUM (NO TOCADO)
 # =================================================
 st.markdown("""
 <style>
@@ -212,12 +211,12 @@ img { border-radius: 16px; }
 """, unsafe_allow_html=True)
 
 # =================================================
-# SESSION STATE (IGUAL)
+# SESSION STATE
 # =================================================
 if "pagina" not in st.session_state:
     st.session_state.pagina = "Inicio"
 
-if "usuario" not in st.session_state:
+if "usuario" not in st.session_state or st.session_state.usuario is None:
     st.session_state.usuario = cargar_perfil_bd()
 
 totales_hoy, historial_hoy = leer_progreso_hoy_bd()
