@@ -4,10 +4,10 @@ from PIL import Image
 import json
 import datetime
 import io
-import sqlite3 
-import os      
-from datetime import date 
 import time
+from datetime import date 
+import pandas as pd
+from sqlalchemy import text # Necesario para PostgreSQL/Supabase
 
 # =================================================
 # CONFIG
@@ -19,143 +19,156 @@ st.set_page_config(
 )
 
 # =================================================
-# SQLITE - CONFIGURACIÓN AUTOMÁTICA
-# =================================================
-DB_PATH = "database/macrorecio.db"
-
-def init_db():
-    os.makedirs("database", exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Usuarios (
-        ID_Usuario INTEGER PRIMARY KEY AUTOINCREMENT,
-        Genero TEXT,
-        Edad INTEGER,
-        Peso REAL,
-        Altura REAL,
-        Actividad TEXT,
-        Objetivo TEXT,
-        Meta_Calorias INTEGER,
-        Meta_Proteinas INTEGER,
-        Meta_Grasas INTEGER,
-        Meta_Carbos INTEGER
-    )
-    """)
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS Comidas (
-        ID_Comida INTEGER PRIMARY KEY AUTOINCREMENT,
-        ID_Usuario INTEGER,
-        Nombre_Plato TEXT,
-        Calorias INTEGER,
-        Proteinas INTEGER,
-        Grasas INTEGER,
-        Carbos INTEGER,
-        Fecha_Consumo TEXT
-    )
-    """)
-    conn.commit()
-    conn.close()
-
-init_db()
-
-# =================================================
-# CONEXIÓN BASE DE DATOS (SQLITE)
+# CONEXIÓN BASE DE DATOS (SUPABASE / POSTGRESQL)
 # =================================================
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row 
-    return conn
+    # Conexión nativa de Streamlit a Supabase usando st.connection
+    return st.connection("supabase", type="sql")
+
+def init_db():
+    conn = get_db_connection()
+    # Usamos sintaxis compatible con PostgreSQL
+    with conn.session as s:
+        s.execute(text("""
+            CREATE TABLE IF NOT EXISTS Usuarios (
+                ID_Usuario SERIAL PRIMARY KEY,
+                Genero TEXT,
+                Edad INTEGER,
+                Peso REAL,
+                Altura REAL,
+                Actividad TEXT,
+                Objetivo TEXT,
+                Meta_Calorias INTEGER,
+                Meta_Proteinas INTEGER,
+                Meta_Grasas INTEGER,
+                Meta_Carbos INTEGER
+            );
+        """))
+        
+        s.execute(text("""
+            CREATE TABLE IF NOT EXISTS Comidas (
+                ID_Comida SERIAL PRIMARY KEY,
+                ID_Usuario INTEGER,
+                Nombre_Plato TEXT,
+                Calorias INTEGER,
+                Proteinas INTEGER,
+                Grasas INTEGER,
+                Carbos INTEGER,
+                Fecha_Consumo DATE
+            );
+        """))
+        s.commit()
+
+# Iniciamos tablas si no existen (Manejo de errores silencioso para producción)
+try:
+    init_db()
+except Exception as e:
+    # Si falla la primera vez, suele ser conexión, reintentamos o mostramos error sutil
+    st.error(f"Error de conexión con la Base de Datos: {e}")
+
+# =================================================
+# FUNCIONES DE BASE DE DATOS (ADAPTADAS)
+# =================================================
 
 def guardar_perfil_bd(datos):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM Usuarios")
-    existe = cursor.fetchone()[0]
+    # Verificar si existe usuario (ID 1 fijo por ahora)
+    df = conn.query("SELECT COUNT(*) as count FROM Usuarios WHERE ID_Usuario = 1", ttl=0)
+    existe = df.iloc[0]["count"]
 
-    if existe == 0:
-        cursor.execute("""
-        INSERT INTO Usuarios 
-        (Genero, Edad, Peso, Altura, Actividad, Objetivo, 
-         Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            datos['genero'], datos['edad'], datos['peso'], datos['altura'], 
-            datos['actividad'], datos['objetivo'], 
-            datos['calorias'], datos['proteinas'], 
-            datos['grasas'], datos['carbos']
-        ))
-    else:
-        cursor.execute("""
-        UPDATE Usuarios SET 
-            Genero=?, Edad=?, Peso=?, Altura=?, Actividad=?, Objetivo=?, 
-            Meta_Calorias=?, Meta_Proteinas=?, Meta_Grasas=?, Meta_Carbos=?
-        WHERE ID_Usuario=1
-        """, (
-            datos['genero'], datos['edad'], datos['peso'], datos['altura'], 
-            datos['actividad'], datos['objetivo'], 
-            datos['calorias'], datos['proteinas'], 
-            datos['grasas'], datos['carbos']
-        ))
-    conn.commit()
-    conn.close()
+    with conn.session as s:
+        if existe == 0:
+            query = text("""
+                INSERT INTO Usuarios 
+                (ID_Usuario, Genero, Edad, Peso, Altura, Actividad, Objetivo, 
+                 Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos)
+                VALUES (1, :genero, :edad, :peso, :altura, :actividad, :objetivo, 
+                        :calorias, :proteinas, :grasas, :carbos)
+            """)
+        else:
+            query = text("""
+                UPDATE Usuarios SET 
+                    Genero=:genero, Edad=:edad, Peso=:peso, Altura=:altura, 
+                    Actividad=:actividad, Objetivo=:objetivo, 
+                    Meta_Calorias=:calorias, Meta_Proteinas=:proteinas, 
+                    Meta_Grasas=:grasas, Meta_Carbos=:carbos
+                WHERE ID_Usuario=1
+            """)
+        
+        s.execute(query, {
+            'genero': datos['genero'], 'edad': datos['edad'], 'peso': datos['peso'], 
+            'altura': datos['altura'], 'actividad': datos['actividad'], 'objetivo': datos['objetivo'],
+            'calorias': datos['calorias'], 'proteinas': datos['proteinas'], 
+            'grasas': datos['grasas'], 'carbos': datos['carbos']
+        })
+        s.commit()
 
 def cargar_perfil_bd():
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos FROM Usuarios WHERE ID_Usuario=1")
-    row = cursor.fetchone()
-    conn.close()
-    if row:
+    df = conn.query("SELECT Meta_Calorias, Meta_Proteinas, Meta_Grasas, Meta_Carbos FROM Usuarios WHERE ID_Usuario = 1", ttl=0)
+    if not df.empty:
         return {
-            "calorias": row["Meta_Calorias"], 
-            "proteinas": row["Meta_Proteinas"], 
-            "grasas": row["Meta_Grasas"], 
-            "carbos": row["Meta_Carbos"]
+            "calorias": int(df.iloc[0]["Meta_Calorias"]), 
+            "proteinas": int(df.iloc[0]["Meta_Proteinas"]), 
+            "grasas": int(df.iloc[0]["Meta_Grasas"]), 
+            "carbos": int(df.iloc[0]["Meta_Carbos"])
         }
     return None
 
 def guardar_comida_bd(plato):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-    INSERT INTO Comidas 
-    (ID_Usuario, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos, Fecha_Consumo)
-    VALUES (1, ?, ?, ?, ?, ?, ?)
-    """, (
-        plato['nombre_plato'], 
-        plato['calorias'], 
-        plato['proteinas'], 
-        plato['grasas'], 
-        plato['carbos'],
-        date.today().isoformat()
-    ))
-    conn.commit()
-    conn.close()
+    with conn.session as s:
+        s.execute(
+            text("""
+            INSERT INTO Comidas 
+            (ID_Usuario, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos, Fecha_Consumo)
+            VALUES (1, :nombre, :calorias, :proteinas, :grasas, :carbos, :fecha)
+            """),
+            {
+                'nombre': plato['nombre_plato'], 
+                'calorias': plato['calorias'], 
+                'proteinas': plato['proteinas'], 
+                'grasas': plato['grasas'], 
+                'carbos': plato['carbos'],
+                'fecha': date.today()
+            }
+        )
+        s.commit()
 
 def leer_progreso_hoy_bd():
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE Fecha_Consumo=? AND ID_Usuario=1", (date.today().isoformat(),))
-    rows = cursor.fetchall()
-    conn.close()
+    hoy = date.today()
+    # Usamos parámetros seguros (:fecha)
+    query = "SELECT Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE Fecha_Consumo = :fecha AND ID_Usuario = 1"
+    df = conn.query(query, params={"fecha": hoy}, ttl=0)
+    
     historial = []
     totales = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
-    for r in rows:
+    
+    for index, row in df.iterrows():
         historial.append({
-            "nombre_plato": r["Nombre_Plato"], 
-            "calorias": r["Calorias"], 
-            "proteinas": r["Proteinas"], 
-            "grasas": r["Grasas"], 
-            "carbos": r["Carbos"]
+            "nombre_plato": row["Nombre_Plato"], 
+            "calorias": row["Calorias"], 
+            "proteinas": row["Proteinas"], 
+            "grasas": row["Grasas"], 
+            "carbos": row["Carbos"]
         })
-        totales["calorias"] += r["Calorias"]
-        totales["proteinas"] += r["Proteinas"]
-        totales["grasas"] += r["Grasas"]
-        totales["carbos"] += r["Carbos"]
+        totales["calorias"] += row["Calorias"]
+        totales["proteinas"] += row["Proteinas"]
+        totales["grasas"] += row["Grasas"]
+        totales["carbos"] += row["Carbos"]
+        
     return totales, historial
+
+def obtener_historial_completo_df():
+    conn = get_db_connection()
+    query = "SELECT Fecha_Consumo, SUM(Calorias) as Total_Calorias FROM Comidas WHERE ID_Usuario=1 GROUP BY Fecha_Consumo ORDER BY Fecha_Consumo"
+    return conn.query(query, ttl=0)
+
+def obtener_todo_historial_csv():
+    conn = get_db_connection()
+    query = "SELECT Fecha_Consumo, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE ID_Usuario=1 ORDER BY Fecha_Consumo DESC"
+    return conn.query(query, ttl=0)
 
 # =================================================
 # ESTILOS
@@ -172,6 +185,8 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 [data-testid="stMetric"] { background: rgba(30,41,59,0.6); padding: 16px; border-radius: 14px; text-align: center; }
 .stProgress > div > div > div > div { background-color: #10B981; }
 img { border-radius: 16px; }
+footer {visibility: hidden;}
+.disclaimer { font-size: 12px; color: #94a3b8; text-align: center; margin-top: 50px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -182,13 +197,21 @@ if "pagina" not in st.session_state:
     st.session_state.pagina = "Inicio"
 
 if "usuario" not in st.session_state or st.session_state.usuario is None:
-    perfil_db = cargar_perfil_bd()
-    if perfil_db:
-        st.session_state.usuario = perfil_db
-    else:
+    try:
+        perfil_db = cargar_perfil_bd()
+        if perfil_db:
+            st.session_state.usuario = perfil_db
+        else:
+            st.session_state.usuario = None
+    except:
         st.session_state.usuario = None
 
-totales_hoy, historial_hoy = leer_progreso_hoy_bd()
+try:
+    totales_hoy, historial_hoy = leer_progreso_hoy_bd()
+except:
+    totales_hoy = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
+    historial_hoy = []
+
 st.session_state.diario = {
     "fecha": datetime.date.today(),
     "calorias": totales_hoy["calorias"],
@@ -228,6 +251,7 @@ def analizar_comida(image: Image.Image):
     intentos = 0
     max_intentos = 2
     
+    # Intento 1: Modelo Flash 2.5
     while intentos < max_intentos:
         try:
             model = genai.GenerativeModel("gemini-2.5-flash")
@@ -243,6 +267,7 @@ def analizar_comida(image: Image.Image):
             else:
                 break
 
+    # Intento 2: Modelo Flash 2.0 (Backup)
     try:
         model_backup = genai.GenerativeModel("gemini-2.0-flash")
         response = model_backup.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
@@ -292,6 +317,9 @@ with st.sidebar:
     if st.button("👤 Perfil"): st.session_state.pagina = "Perfil"
     if st.button("📸 Analizar comida"): st.session_state.pagina = "Escaner"
     if st.button("📊 Progreso"): st.session_state.pagina = "Progreso"
+    
+    st.markdown("---")
+    st.caption("v1.2.0 - Pro DB")
 
 if st.session_state.pagina == "Inicio":
     st.markdown("<div class='card'><h1>Bienvenido a MacroRecioIA 💪</h1><p style='font-size:18px;'>Tu entrenador nutricional inteligente.</p></div>", unsafe_allow_html=True)
@@ -357,7 +385,6 @@ elif st.session_state.pagina == "Escaner":
                 try:
                     data = analizar_comida(image)
                     
-                    # --- MOSTRAR DATOS DEL PLATO ---
                     st.markdown(f"### 🍽️ {data['nombre_plato']}")
                     col1, col2, col3, col4 = st.columns(4)
                     col1.metric("🔥 Calorías", data['calorias'])
@@ -365,7 +392,6 @@ elif st.session_state.pagina == "Escaner":
                     col3.metric("🥑 Grasas", f"{data['grasas']}g")
                     col4.metric("🍞 Carbos", f"{data['carbos']}g")
 
-                    # --- ALERTA DE EXCESO ---
                     u = st.session_state.usuario
                     d = st.session_state.diario
                     if u and (d["calorias"] + data["calorias"] > u["calorias"]):
@@ -379,7 +405,7 @@ elif st.session_state.pagina == "Escaner":
                 
                 except Exception as e:
                     if "API key expired" in str(e):
-                        st.error("🚨 TU CLAVE DE API HA CADUCADO. Necesitas generar una nueva en Google AI Studio y actualizarla en Streamlit Cloud Secrets.")
+                        st.error("🚨 TU CLAVE DE API HA CADUCADO.")
                     elif "429" in str(e):
                         st.error("⏳ Servidor ocupado. Espera un minuto.")
                     else:
@@ -399,7 +425,28 @@ elif st.session_state.pagina == "Progreso":
     c2.metric("🥩 Proteínas", d["proteinas"], f"Meta: {u['proteinas']}")
     c3.metric("🥑 Grasas", d["grasas"], f"Meta: {u['grasas']}")
     c4.metric("🍞 Carbos", d["carbos"], f"Meta: {u['carbos']}")
+    
+    st.markdown("### 📈 Tendencia")
+    try:
+        df_historial = obtener_historial_completo_df()
+        if not df_historial.empty:
+            st.line_chart(df_historial.set_index('Fecha_Consumo'))
+        else:
+            st.info("Aún no hay datos suficientes.")
+    except:
+        pass
+
     if d["historial"]:
-        st.markdown("### 🍽 Historial")
+        st.markdown("### 🍽 Historial de Hoy")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+    
+    st.markdown("### 💾 Exportar Datos")
+    try:
+        df_todo = obtener_todo_historial_csv()
+        csv = df_todo.to_csv(index=False).encode('utf-8')
+        st.download_button("Descargar historial completo (CSV)", csv, 'historial.csv', 'text/csv')
+    except:
+        pass
+
+st.markdown("<div class='disclaimer'>Nota: Esta aplicación utiliza IA. Información estimativa. Consulta a un profesional de la salud.</div>", unsafe_allow_html=True)
