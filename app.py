@@ -20,23 +20,21 @@ st.set_page_config(
 # =================================================
 def get_db_connection():
     try:
-        # CONEXIÓN POR NAMED PIPES (Ideal para local)
-        # 'np:' fuerza el uso de tuberías con nombre (Named Pipes)
-        # '.' significa "esta computadora"
         connection_string = (
             "DRIVER={ODBC Driver 17 for SQL Server};"
-            "SERVER=np:.;" 
+            "SERVER=localhost;"
             "DATABASE=MacroRecioBD;"
             "Trusted_Connection=yes;"
             "TrustServerCertificate=yes;"
         )
-        
-        # Aumentamos el timeout a 10 por si la PC es lenta al responder
+
         conn = pyodbc.connect(connection_string, timeout=10)
         return conn
+
     except Exception as e:
         st.error(f"❌ Error detallado: {e}")
         return None
+
 # Función para guardar el perfil en SQL Server
 def guardar_perfil_bd(datos):
     conn = get_db_connection()
@@ -486,6 +484,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
