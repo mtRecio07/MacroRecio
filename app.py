@@ -207,7 +207,7 @@ except:
     pass
 
 # =================================================
-# FUNCIONES IA (CON GEMINI 2.5 FLASH)
+# FUNCIONES IA
 # =================================================
 def analizar_comida(image: Image.Image):
     buffer = io.BytesIO()
@@ -225,7 +225,6 @@ def analizar_comida(image: Image.Image):
     }
     """
 
-    # Intentamos con gemini-2.5-flash como pediste
     intentos = 0
     max_intentos = 2
     
@@ -236,17 +235,14 @@ def analizar_comida(image: Image.Image):
             limpio = response.text.replace("```json", "").replace("```", "").strip()
             return json.loads(limpio)
         except Exception as e:
-            if "429" in str(e): # Error de cuota
+            if "429" in str(e): 
                 time.sleep(5)
                 intentos += 1
             elif "API_KEY" in str(e):
-                # Si la key está mal, no sirve de nada reintentar
                 raise e
             else:
-                # Si falla el 2.5, intentamos fallback con el 2.0 que funcionaba antes
                 break
 
-    # Backup: gemini-2.0-flash
     try:
         model_backup = genai.GenerativeModel("gemini-2.0-flash")
         response = model_backup.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
@@ -360,11 +356,27 @@ elif st.session_state.pagina == "Escaner":
             with st.spinner("Analizando con IA..."):
                 try:
                     data = analizar_comida(image)
-                    guardar_comida_bd(data)
+                    
+                    # --- MOSTRAR DATOS DEL PLATO ---
+                    st.markdown(f"### 🍽️ {data['nombre_plato']}")
+                    col1, col2, col3, col4 = st.columns(4)
+                    col1.metric("🔥 Calorías", data['calorias'])
+                    col2.metric("🥩 Proteínas", f"{data['proteinas']}g")
+                    col3.metric("🥑 Grasas", f"{data['grasas']}g")
+                    col4.metric("🍞 Carbos", f"{data['carbos']}g")
+
+                    # --- ALERTA DE EXCESO ---
+                    u = st.session_state.usuario
                     d = st.session_state.diario
+                    if u and (d["calorias"] + data["calorias"] > u["calorias"]):
+                        exceso = (d["calorias"] + data["calorias"]) - u["calorias"]
+                        st.warning(f"⚠️ ¡Cuidado! Si comes esto excederás tu meta diaria por {exceso} calorías.")
+
+                    guardar_comida_bd(data)
                     for k in ["calorias", "proteinas", "grasas", "carbos"]: d[k] += data[k]
                     d["historial"].append(data)
-                    st.success(f"✅ {data['nombre_plato']} guardado en BD")
+                    st.success(f"✅ {data['nombre_plato']} agregado a tu historial")
+                
                 except Exception as e:
                     if "API key expired" in str(e):
                         st.error("🚨 TU CLAVE DE API HA CADUCADO. Necesitas generar una nueva en Google AI Studio y actualizarla en Streamlit Cloud Secrets.")
