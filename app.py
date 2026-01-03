@@ -35,6 +35,7 @@ def get_db_connection():
         st.error(f"❌ Error detallado: {e}")
         return None
 
+
 # Función para guardar el perfil en SQL Server
 def guardar_perfil_bd(datos):
     conn = get_db_connection()
@@ -484,6 +485,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
