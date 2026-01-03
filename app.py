@@ -290,9 +290,9 @@ except:
 # FUNCIONES
 # =================================================
 def analizar_comida(image: Image.Image):
-    # Usamos el nombre base "gemini-1.5-flash"
-    # IMPORTANTE: Esto solo funciona si requirements.txt tiene google-generativeai>=0.7.0
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    # CAMBIO: Usamos "gemini-pro-vision". Este es el modelo clásico para imágenes.
+    # Es mucho más estable si la versión 1.5 está dando problemas de 404.
+    model = genai.GenerativeModel("gemini-pro-vision")
 
     buffer = io.BytesIO()
     image.save(buffer, format="JPEG")
@@ -311,7 +311,7 @@ Analiza la comida y devuelve SOLO este JSON válido:
 
     response = model.generate_content([
         prompt,
-        {"mime_type": "image/jpeg", "data": image_bytes}
+        image # Nota: gemini-pro-vision prefiere recibir la imagen directa del objeto PIL o bytes, aquí usamos el objeto PIL original
     ])
 
     limpio = response.text.replace("```json", "").replace("```", "").strip()
