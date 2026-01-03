@@ -14,7 +14,6 @@ from sqlalchemy import text # Necesario para PostgreSQL/Supabase
 # =================================================
 st.set_page_config(
     page_title="MacroRecioIA",
-    page_icon="💪",
     layout="wide"
 )
 
@@ -311,7 +310,7 @@ def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
 # INTERFAZ
 # =================================================
 with st.sidebar:
-    st.title("💪 MacroRecioIA")
+    st.title("MacroRecioIA")
     st.caption("Nutrición inteligente con IA")
     if st.button("🏠 Inicio"): st.session_state.pagina = "Inicio"
     if st.button("👤 Perfil"): st.session_state.pagina = "Perfil"
