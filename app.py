@@ -331,6 +331,39 @@ if st.session_state.pagina == "Inicio":
     c1.markdown("<div class='card'><h2>¿Para qué sirve?</h2><ul><li>📊 Macros personalizados</li><li>📸 Analizar comidas con IA</li><li>📈 Ver progreso</li></ul></div>", unsafe_allow_html=True)
     c2.markdown("<div class='card'><h2>¿Cómo se usa?</h2><ol><li>Completá tu perfil</li><li>Escaneá comidas</li><li>Seguimiento visual</li></ol></div>", unsafe_allow_html=True)
 
+    # --- AGREGADO PROFESIONAL Y LLAMATIVO ---
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align: center; color: #94a3b8; margin-bottom: 20px;">
+        <h4>🌟 Potenciado por Tecnología de Punta</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns(3)
+    col1.markdown("""
+    <div class="card" style="text-align:center; padding: 10px;">
+        <h2 style="margin:0;">🧠</h2>
+        <p style="font-weight:bold; margin:0;">Gemini 2.5 Flash</p>
+        <p style="font-size:12px; margin:0;">IA de Google de última generación</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col2.markdown("""
+    <div class="card" style="text-align:center; padding: 10px;">
+        <h2 style="margin:0;">⚡</h2>
+        <p style="font-weight:bold; margin:0;">Supabase Cloud</p>
+        <p style="font-size:12px; margin:0;">Base de datos en tiempo real</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col3.markdown("""
+    <div class="card" style="text-align:center; padding: 10px;">
+        <h2 style="margin:0;">🔒</h2>
+        <p style="font-weight:bold; margin:0;">Privacidad Total</p>
+        <p style="font-size:12px; margin:0;">Tus datos están encriptados</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 elif st.session_state.pagina == "Perfil":
     st.markdown("<div class='card'><h2>Perfil nutricional</h2></div>", unsafe_allow_html=True)
     with st.form("perfil"):
