@@ -7,7 +7,7 @@ import io
 import sqlite3 
 import os      
 from datetime import date 
-import time  # Necesario para la espera (sleep)
+import time
 
 # =================================================
 # CONFIG
@@ -207,7 +207,7 @@ except:
     pass
 
 # =================================================
-# FUNCIONES IA CON REINTENTOS (Solución Error 429)
+# FUNCIONES IA (CON GEMINI 2.5 FLASH)
 # =================================================
 def analizar_comida(image: Image.Image):
     buffer = io.BytesIO()
@@ -225,32 +225,34 @@ def analizar_comida(image: Image.Image):
     }
     """
 
-    # Intentamos primero con gemini-2.0-flash (Más rápido pero con límites)
-    # Si falla por cuota (429), esperamos y reintentamos.
+    # Intentamos con gemini-2.5-flash como pediste
     intentos = 0
     max_intentos = 2
     
     while intentos < max_intentos:
         try:
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            model = genai.GenerativeModel("gemini-2.5-flash")
             response = model.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
             limpio = response.text.replace("```json", "").replace("```", "").strip()
             return json.loads(limpio)
         except Exception as e:
             if "429" in str(e): # Error de cuota
-                time.sleep(5) # Esperamos 5 segundos
+                time.sleep(5)
                 intentos += 1
+            elif "API_KEY" in str(e):
+                # Si la key está mal, no sirve de nada reintentar
+                raise e
             else:
-                break # Si es otro error, salimos del bucle para probar el modelo de respaldo
+                # Si falla el 2.5, intentamos fallback con el 2.0 que funcionaba antes
+                break
 
-    # Si Flash falla o se agota, probamos el modelo clásico (Plan B)
+    # Backup: gemini-2.0-flash
     try:
-        model_backup = genai.GenerativeModel("gemini-1.5-flash") # Backup más estable
+        model_backup = genai.GenerativeModel("gemini-2.0-flash")
         response = model_backup.generate_content([prompt, {"mime_type": "image/jpeg", "data": image_bytes}])
         limpio = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(limpio)
     except Exception as e:
-        # Si todo falla, lanzamos el error real para que el usuario sepa
         raise e
 
 def calcular_macros(genero, edad, peso, altura, actividad, objetivo):
@@ -355,7 +357,7 @@ elif st.session_state.pagina == "Escaner":
         image = Image.open(img).convert("RGB")
         st.image(image, width=320)
         if st.button("Analizar comida"):
-            with st.spinner("Analizando con IA (esto puede tardar unos segundos)..."):
+            with st.spinner("Analizando con IA..."):
                 try:
                     data = analizar_comida(image)
                     guardar_comida_bd(data)
@@ -364,8 +366,10 @@ elif st.session_state.pagina == "Escaner":
                     d["historial"].append(data)
                     st.success(f"✅ {data['nombre_plato']} guardado en BD")
                 except Exception as e:
-                    if "429" in str(e):
-                        st.error("⏳ El servidor está ocupado (Límite de uso gratuito). Por favor espera 1 minuto y vuelve a intentar.")
+                    if "API key expired" in str(e):
+                        st.error("🚨 TU CLAVE DE API HA CADUCADO. Necesitas generar una nueva en Google AI Studio y actualizarla en Streamlit Cloud Secrets.")
+                    elif "429" in str(e):
+                        st.error("⏳ Servidor ocupado. Espera un minuto.")
                     else:
                         st.error(f"❌ Error: {e}")
 
