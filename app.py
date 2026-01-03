@@ -290,7 +290,7 @@ except:
 # FUNCIONES
 # =================================================
 def analizar_comida(image: Image.Image):
-    # CORRECCIÓN: Usamos el nombre estable del modelo para evitar errores 404
+    # CORRECCIÓN: Usamos el nombre estable "gemini-1.5-flash" (sin -latest)
     model = genai.GenerativeModel("gemini-1.5-flash")
 
     buffer = io.BytesIO()
@@ -495,7 +495,7 @@ elif st.session_state.pagina == "Perfil":
             'grasas': macros['grasas'], 'carbos': macros['carbos']
         }
         guardar_perfil_bd(datos_para_bd)
-        # Se eliminó el mensaje de éxito aquí como solicitaste
+        # Se eliminó el mensaje de éxito aquí
 
     if st.session_state.usuario:
         u = st.session_state.usuario
@@ -533,7 +533,7 @@ elif st.session_state.pagina == "Escaner":
                     
                     st.success(f"✅ {data['nombre_plato']} guardado en BD")
                 except Exception as e:
-                    st.error("Error al analizar la imagen. Intenta de nuevo.")
+                    st.error(f"❌ Ocurrió un error: {e}")
 
 elif st.session_state.pagina == "Progreso":
     if not st.session_state.usuario:
