@@ -23,7 +23,7 @@ def get_db_connection():
         # Usamos 127.0.0.1,1433 para forzar la conexión a tu máquina en el puerto que acabamos de abrir
         connection_string = (
             "DRIVER={ODBC Driver 17 for SQL Server};"
-            "SERVER=127.0.0.1,1433;" 
+            "SERVER=Martinovichgg\SQLEXPRESS;" 
             "DATABASE=MacroRecioBD;"
             "Trusted_Connection=yes;"
         )
@@ -483,6 +483,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
