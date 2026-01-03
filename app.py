@@ -294,25 +294,46 @@ def analizar_comida_ia(image):
 
 def calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo):
     tmb = 10*peso + 6.25*altura - 5*edad + (5 if genero == "Hombre" else -161)
-    mapa = {
+    
+    # Mapa original de actividad
+    mapa_actividad = {
         "Sedentario (0 días)": 1.2,
         "Ligero (1-2 días)": 1.375,
         "Moderado (3-4 días)": 1.55,
         "Activo (5-6 días)": 1.725,
         "Muy activo (7 días)": 1.9
     }
-    factor = mapa.get(actividad, 1.2)
     
-    calorias = tmb * factor
-    prot_g_kg = 2.0
-    if objetivo == "ganar musculo": calorias += 300; prot_g_kg = 2.2
-    elif objetivo == "perder grasa": calorias -= 400; prot_g_kg = 2.3
-    elif objetivo == "recomposicion corporal": calorias -= 100; prot_g_kg = 2.4
-    elif objetivo == "mantener fisico": prot_g_kg = 1.8
+    factor = mapa_actividad.get(actividad, 1.2)
+    calorias_mantenimiento = tmb * factor
+
+    calorias_final = calorias_mantenimiento
+    proteinas_gramos_kg = 2.0 # Default
+
+    if objetivo == "ganar musculo":
+        calorias_final += 300
+        proteinas_gramos_kg = 2.2 
+    elif objetivo == "perder grasa":
+        calorias_final -= 400
+        proteinas_gramos_kg = 2.3 
+    elif objetivo == "recomposicion corporal":
+        calorias_final -= 100 
+        proteinas_gramos_kg = 2.4 
+    elif objetivo == "mantener fisico":
+        calorias_final = calorias_mantenimiento
+        proteinas_gramos_kg = 1.8 
+
+    proteinas = peso * proteinas_gramos_kg
+    grasas = peso * 0.9 
     
+    calorias_restantes = calorias_final - (proteinas * 4 + grasas * 9)
+    carbos = calorias_restantes / 4
+
     return {
-        "calorias": int(calorias), "proteinas": int(peso * prot_g_kg),
-        "grasas": int(peso * 0.9), "carbos": int((calorias - (peso * prot_g_kg * 4 + peso * 0.9 * 9)) / 4)
+        "calorias": int(calorias_final),
+        "proteinas": int(proteinas),
+        "grasas": int(grasas),
+        "carbos": int(carbos)
     }
 
 # =================================================
@@ -437,30 +458,50 @@ elif selected == "Perfil":
             idx_genero = 0 if u.get('genero') == 'Hombre' else 1
             genero = st.selectbox("Género", ["Hombre", "Mujer"], index=idx_genero)
             edad = st.number_input("Edad", 15, 90, u.get('edad') or 25)
-            peso = st.number_input("Peso (kg)", 40, 150, float(u.get('peso') or 70))
+            # FIX: Aseguramos que min, max y value sean FLOAT para evitar el error de Streamlit
+            peso = st.number_input("Peso (kg)", 40.0, 150.0, float(u.get('peso') or 70.0))
         with c2:
-            altura = st.number_input("Altura (cm)", 140, 220, float(u.get('altura') or 170))
+            # FIX: Aseguramos que min, max y value sean FLOAT
+            altura = st.number_input("Altura (cm)", 140.0, 220.0, float(u.get('altura') or 170.0))
+            
+            # Restaurar lista completa de actividades
+            opciones_actividad = [
+                "Sedentario (0 días)",
+                "Ligero (1-2 días)",
+                "Moderado (3-4 días)",
+                "Activo (5-6 días)",
+                "Muy activo (7 días)"
+            ]
             
             # Buscar el index de la actividad guardada
-            opciones_actividad = ["Sedentario (0 días)", "Ligero (1-2 días)", "Moderado (3-4 días)", "Activo (5-6 días)", "Muy activo (7 días)"]
             try:
                 idx_act = opciones_actividad.index(u.get('actividad'))
             except:
                 idx_act = 0
             actividad = st.selectbox("Nivel de actividad", opciones_actividad, index=idx_act)
             
-            # Buscar el index del objetivo guardado
-            opciones_objetivo = ["ganar musculo", "perder grasa", "recomposicion corporal", "mantener fisico"]
+            # Restaurar lista completa de objetivos
+            opciones_objetivo = [
+                "ganar musculo",
+                "perder grasa",
+                "recomposicion corporal",
+                "mantener fisico"
+            ]
             try:
                 idx_obj = opciones_objetivo.index(u.get('objetivo'))
             except:
                 idx_obj = 0
             objetivo = st.selectbox("Objetivo", opciones_objetivo, index=idx_obj)
         
-        if objetivo == "ganar musculo": st.info("💡 **Estrategia:** Superávit calórico ligero + Proteína moderada/alta para maximizar hipertrofia.")
-        elif objetivo == "perder grasa": st.info("💡 **Estrategia:** Déficit calórico controlado + Proteína alta para proteger tu masa muscular.")
-        elif objetivo == "recomposicion corporal": st.info("💡 **Estrategia:** Normocalórica o ligero déficit + Proteína muy alta para ganar músculo y perder grasa simultáneamente (ideal principiantes).")
-        elif objetivo == "mantener fisico": st.info("💡 **Estrategia:** Calorías de mantenimiento + Proteína estándar para salud y rendimiento.")
+        # Mensajes de estrategia (Restaurados)
+        if objetivo == "ganar musculo":
+            st.info("💡 **Estrategia:** Superávit calórico ligero + Proteína moderada/alta para maximizar hipertrofia.")
+        elif objetivo == "perder grasa":
+            st.info("💡 **Estrategia:** Déficit calórico controlado + Proteína alta para proteger tu masa muscular.")
+        elif objetivo == "recomposicion corporal":
+            st.info("💡 **Estrategia:** Normocalórica o ligero déficit + Proteína muy alta para ganar músculo y perder grasa simultáneamente (ideal principiantes).")
+        elif objetivo == "mantener fisico":
+            st.info("💡 **Estrategia:** Calorías de mantenimiento + Proteína estándar para salud y rendimiento.")
         
         # EL BOTÓN DE ENVIAR (CLAVE PARA EL DISEÑO ORIGINAL)
         ok = st.form_submit_button("Calcular requerimientos")
