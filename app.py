@@ -37,8 +37,8 @@ html, body, [class*="css"] {
 
 /* --- BARRA LATERAL LIQUID GLASS --- */
 [data-testid="stSidebar"] {
-    background-color: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(16px);
+    background-color: rgba(15, 23, 42, 0.65); /* Semi-transparente */
+    backdrop-filter: blur(16px); /* Efecto vidrio esmerilado */
     border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -174,7 +174,6 @@ def login_usuario(username, password):
     
     if not df.empty:
         user_data = df.iloc[0].to_dict()
-        # Normalizamos claves a minúscula porque Postgres puede devolver mayusculas o minusculas
         return {k.lower(): v for k, v in user_data.items()}
     return None
 
@@ -283,8 +282,6 @@ def leer_progreso_hoy_usuario_actual():
     
     historial = []
     totales = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
-    
-    # CORRECCIÓN AQUÍ: Usamos nombres en minúscula para acceder a las columnas
     for index, row in df.iterrows():
         # Postgres suele devolver nombres de columnas en minúscula
         nombre = row.get("nombre_plato") or row.get("Nombre_Plato")
@@ -304,7 +301,6 @@ def leer_progreso_hoy_usuario_actual():
         totales["proteinas"] += prot
         totales["grasas"] += fat
         totales["carbos"] += carb
-        
     return totales, historial
 
 def obtener_historial_grafico():
@@ -371,8 +367,8 @@ with st.sidebar:
     # MENÚ LIQUID GLASS INTEGRADO
     selected = option_menu(
         menu_title=None,
-        options=["Inicio", "Perfil", "Escaner", "Progreso"],
-        icons=["house", "person", "camera", "graph-up"],
+        options=["Inicio", "Perfil", "Escaner", "Progreso", "Entrenador"],
+        icons=["house", "person", "camera", "graph-up", "robot"],
         default_index=0,
         styles={
             "container": {"padding": "0!important", "background-color": "transparent"},
@@ -579,7 +575,6 @@ elif selected == "Progreso":
     st.markdown("### 📈 Tendencia")
     try:
         df_historial = obtener_historial_grafico()
-        # CORRECCIÓN AQUÍ: Usar minúscula para el índice de fecha si es necesario
         col_fecha = 'fecha_consumo' if 'fecha_consumo' in df_historial.columns else 'Fecha_Consumo'
         if not df_historial.empty: st.line_chart(df_historial.set_index(col_fecha))
         else: st.info("Aún no hay datos suficientes para mostrar gráficos.")
@@ -596,5 +591,42 @@ elif selected == "Progreso":
         csv = df_todo.to_csv(index=False).encode('utf-8')
         st.download_button("Descargar historial completo (CSV)", csv, 'historial.csv', 'text/csv')
     except: pass
+
+elif selected == "Entrenador":
+    st.markdown("<div class='card'><h2>💬 Tu Coach de Bolsillo</h2><p>Preguntame lo que quieras sobre tu dieta o entrenamiento.</p></div>", unsafe_allow_html=True)
+
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    if prompt := st.chat_input("Ej: ¿Qué puedo cenar ligero?"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        u = st.session_state['user_info']
+        totales, _ = leer_progreso_hoy_usuario_actual()
+        
+        contexto = f"""
+        Actúa como un entrenador personal y nutricionista experto.
+        Datos del usuario:
+        - Objetivo: {u.get('objetivo', 'general')}
+        - Calorías Meta: {u.get('meta_calorias')} (Lleva: {totales['calorias']})
+        - Proteínas Meta: {u.get('meta_proteinas')} (Lleva: {totales['proteinas']})
+        Responde breve y motivador.
+        """
+        
+        with st.chat_message("assistant"):
+            with st.spinner("Pensando..."):
+                try:
+                    model = genai.GenerativeModel("gemini-2.5-flash")
+                    response = model.generate_content(f"{contexto}\n\nUsuario: {prompt}")
+                    st.markdown(response.text)
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                except:
+                    st.error("Error al conectar con el coach.")
 
 st.markdown("<div class='disclaimer'>Nota: Esta aplicación utiliza IA. Información estimativa. Puedes consultar a un profesional de la salud.</div>", unsafe_allow_html=True)
