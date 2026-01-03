@@ -20,16 +20,14 @@ st.set_page_config(
 # =================================================
 def get_db_connection():
     try:
-        # AJUSTA EL SERVER SI ES NECESARIO (ej: DESKTOP-XYZ\SQLEXPRESS)
         conn = pyodbc.connect(
             'DRIVER={ODBC Driver 17 for SQL Server};'
-            'SERVER=localhost;'
+            'SERVER=Martinovichgg;'  # <--- CAMBIADO SEGÚN TU IMAGEN
             'DATABASE=MacroRecioBD;'
             'Trusted_Connection=yes;'
         )
         return conn
     except Exception as e:
-        # Si falla la BD, mostramos error pero la app no se rompe entera
         st.error(f"Error de conexión a BD: {e}")
         return None
 
@@ -482,5 +480,6 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
