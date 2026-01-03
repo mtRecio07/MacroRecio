@@ -4,9 +4,9 @@ from PIL import Image
 import json
 import datetime
 import io
-import sqlite3 # <--- CAMBIO: Usamos SQLite nativo
-import os      # <--- Para crear carpetas
-from datetime import date # <--- Para manejar fechas
+import sqlite3 
+import os      
+from datetime import date 
 
 # =================================================
 # CONFIG
@@ -282,8 +282,11 @@ st.session_state.diario = {
 # GEMINI
 # =================================================
 try:
+    # Busca la clave en los Secretos de Streamlit Cloud
     genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 except:
+    # No mostramos error aquí para no ensuciar la pantalla al inicio,
+    # el error saltará cuando intenten usar el escáner si falta la clave.
     pass
 
 # =================================================
@@ -532,7 +535,8 @@ elif st.session_state.pagina == "Escaner":
                     
                     st.success(f"✅ {data['nombre_plato']} guardado en BD")
                 except Exception as e:
-                    st.error("Error al analizar la imagen. Intenta de nuevo.")
+                    # AQUÍ ESTÁ EL CAMBIO PARA VER EL ERROR REAL:
+                    st.error(f"❌ Ocurrió un error: {e}")
 
 elif st.session_state.pagina == "Progreso":
     if not st.session_state.usuario:
