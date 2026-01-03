@@ -20,10 +20,12 @@ st.set_page_config(
 # =================================================
 def get_db_connection():
     try:
-        # INTENTO 1: Conexión directa local a la instancia predeterminada
+        # Reemplaza 'NOMBRE_QUE_FUNCIONO' por lo que dice la casilla 1 de tu prueba exitosa
+        server_name = 'Martinovichgg' 
+        
         conn = pyodbc.connect(
             'DRIVER={ODBC Driver 17 for SQL Server};'
-            'SERVER=localhost;'       # Usamos localhost para ir directo a tu PC
+            f'SERVER=.;' 
             'DATABASE=MacroRecioBD;'
             'Trusted_Connection=yes;',
             timeout=5
@@ -482,6 +484,7 @@ elif st.session_state.pagina == "Progreso":
         st.markdown("### 🍽 Historial")
         for h in d["historial"]:
             st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+
 
 
 
