@@ -98,15 +98,7 @@ html, body, [class*="css"] {
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
 }
 
-/* --- ANIMACIÓN DE CARGA (OVERLAY) --- */
-@keyframes writingMotion {
-    0% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(2deg) scale(1.02); }
-    50% { transform: rotate(0deg) scale(1); }
-    75% { transform: rotate(-2deg) scale(1.02); }
-    100% { transform: rotate(0deg) scale(1); }
-}
-
+/* --- OVERLAY DE CARGA --- */
 #loading-overlay {
     position: fixed;
     top: 0;
@@ -134,7 +126,6 @@ html, body, [class*="css"] {
     box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
     margin-bottom: 25px;
     border: 3px solid #10B981;
-    animation: writingMotion 1.5s infinite ease-in-out; /* Movimiento constante */
 }
 
 .loading-text {
@@ -144,6 +135,11 @@ html, body, [class*="css"] {
     margin-top: 15px;
     letter-spacing: 1px;
     text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 img { border-radius: 18px; }
@@ -583,8 +579,8 @@ elif selected == "Perfil":
     if ok:
         # === INICIO PANTALLA DE CARGA (OVERLAY) ===
         loader = st.empty()
-        # Puedes cambiar esta URL por tu GIF
-        imagen_medico = "https://img.freepik.com/premium-vector/muscular-doctor-writing-notes-clipboard-cartoon-style_114309-328.jpg" 
+        # GIF animado de médico
+        imagen_medico = "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExajZ6eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eA/3o7TKSjRrfIPjeiVyM/giphy.gif"
         
         loader.markdown(f"""
             <div id="loading-overlay">
