@@ -103,40 +103,49 @@ html, body, [class*="css"] {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.95); /* Fondo casi negro total */
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95); /* Fondo muy oscuro */
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(15px);
+    backdrop-filter: blur(10px);
 }
 
 .loading-content {
     text-align: center;
-    animation: fadeIn 0.5s ease-in-out;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+/* Estilo para el contenedor del video */
+.video-container {
+    width: 340px;
+    height: auto;
+    border-radius: 20px;
+    overflow: hidden; /* Para que el video respete el borde redondeado */
+    box-shadow: 0 0 60px rgba(16, 185, 129, 0.5); /* Glow verde intenso */
+    border: 3px solid #10B981;
+    margin-bottom: 25px;
+    background-color: #000; /* Fondo negro por si el video no carga al instante */
 }
 
 .loading-video {
-    width: 320px;
+    width: 100%;
     height: auto;
-    border-radius: 24px;
-    /* Sombra verde brillante para integrar el video aunque tenga fondo */
-    box-shadow: 0 0 60px rgba(16, 185, 129, 0.4); 
-    margin-bottom: 30px;
-    border: 3px solid #10B981;
+    display: block;
 }
 
 .loading-text {
     color: #10B981;
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 800;
-    margin-top: 10px;
+    margin-top: 20px;
     letter-spacing: 2px;
     text-transform: uppercase;
-    text-shadow: 0 2px 20px rgba(16, 185, 129, 0.4);
+    text-shadow: 0 2px 20px rgba(16, 185, 129, 0.6);
+    font-family: 'Inter', sans-serif;
 }
 
 @keyframes fadeIn {
@@ -588,7 +597,9 @@ elif selected == "Perfil":
         loader.markdown(f"""
             <div id="loading-overlay">
                 <div class="loading-content">
-                    <video src="{video_medico}" autoplay loop muted playsinline class="loading-video"></video>
+                    <div class="video-container">
+                        <video src="{video_medico}" autoplay loop muted playsinline class="loading-video"></video>
+                    </div>
                     <div class="loading-text">Analizando tu metabolismo...</div>
                 </div>
             </div>
