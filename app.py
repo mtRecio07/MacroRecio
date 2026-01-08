@@ -98,7 +98,15 @@ html, body, [class*="css"] {
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
 }
 
-/* --- OVERLAY DE CARGA --- */
+/* --- ANIMACIÓN DE CARGA (OVERLAY) --- */
+@keyframes writingMotion {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(2deg) scale(1.05); }
+    50% { transform: rotate(0deg) scale(1); }
+    75% { transform: rotate(-2deg) scale(1.05); }
+    100% { transform: rotate(0deg) scale(1); }
+}
+
 #loading-overlay {
     position: fixed;
     top: 0;
@@ -120,12 +128,14 @@ html, body, [class*="css"] {
 }
 
 .loading-image {
-    width: 280px;
+    width: 300px;
     height: auto;
     border-radius: 20px;
     box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
     margin-bottom: 25px;
     border: 3px solid #10B981;
+    /* Aquí aplicamos la animación de movimiento a la imagen */
+    animation: writingMotion 1.5s infinite ease-in-out; 
 }
 
 .loading-text {
@@ -579,8 +589,12 @@ elif selected == "Perfil":
     if ok:
         # === INICIO PANTALLA DE CARGA (OVERLAY) ===
         loader = st.empty()
-        # GIF animado de médico
-        imagen_medico = "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExajZ6eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eA/3o7TKSjRrfIPjeiVyM/giphy.gif"
+        
+        # URL de la imagen generada (Médico musculoso escribiendo)
+        imagen_medico = "https://img.freepik.com/premium-vector/muscular-doctor-writing-notes-clipboard-cartoon-style_114309-328.jpg"
+        
+        # Nota: Como es una imagen estática, la animación CSS 'writingMotion' 
+        # que definimos arriba se encargará de darle movimiento (respiración/latido).
         
         loader.markdown(f"""
             <div id="loading-overlay">
