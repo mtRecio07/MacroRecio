@@ -5,7 +5,7 @@ import json
 import datetime
 import io
 import time
-from datetime import date 
+from datetime import date, timedelta 
 import pandas as pd
 from sqlalchemy import text
 from streamlit_option_menu import option_menu 
@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # =================================================
-# ESTILOS CSS "LIQUID GLASS" PREMIUM
+# ESTILOS CSS "LIQUID GLASS" PREMIUM + OVERLAY CARGA
 # =================================================
 st.markdown("""
 <style>
@@ -96,6 +96,54 @@ html, body, [class*="css"] {
     background: linear-gradient(135deg, #34D399, #10B981);
     transform: translateY(-2px);
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
+}
+
+/* --- ANIMACIÓN DE CARGA (OVERLAY) --- */
+@keyframes writingMotion {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(2deg) scale(1.02); }
+    50% { transform: rotate(0deg) scale(1); }
+    75% { transform: rotate(-2deg) scale(1.02); }
+    100% { transform: rotate(0deg) scale(1); }
+}
+
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85); /* Fondo negro transparente */
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+}
+
+.loading-content {
+    text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.loading-image {
+    width: 280px;
+    height: auto;
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+    margin-bottom: 25px;
+    border: 3px solid #10B981;
+    animation: writingMotion 1.5s infinite ease-in-out; /* Movimiento constante */
+}
+
+.loading-text {
+    color: #10B981;
+    font-size: 26px;
+    font-weight: 800;
+    margin-top: 15px;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 img { border-radius: 18px; }
@@ -283,7 +331,6 @@ def leer_progreso_hoy_usuario_actual():
     historial = []
     totales = {"calorias": 0, "proteinas": 0, "grasas": 0, "carbos": 0}
     for index, row in df.iterrows():
-        # Postgres suele devolver nombres de columnas en minúscula
         nombre = row.get("nombre_plato") or row.get("Nombre_Plato")
         cal = row.get("calorias") or row.get("Calorias") or 0
         prot = row.get("proteinas") or row.get("Proteinas") or 0
@@ -314,6 +361,27 @@ def obtener_todo_csv():
     uid = st.session_state['user_info']['id_usuario']
     query = "SELECT Fecha_Consumo, Nombre_Plato, Calorias, Proteinas, Grasas, Carbos FROM Comidas WHERE ID_Usuario=:uid ORDER BY Fecha_Consumo DESC"
     return conn.query(query, params={"uid": uid}, ttl=0)
+
+def calcular_racha_usuario(uid):
+    conn = get_db_connection()
+    try:
+        query = "SELECT DISTINCT Fecha_Consumo FROM Comidas WHERE ID_Usuario = :uid ORDER BY Fecha_Consumo DESC"
+        df = conn.query(query, params={"uid": uid}, ttl=0)
+        if df.empty: return 0
+        
+        fechas = pd.to_datetime(df.iloc[:, 0]).dt.date.tolist()
+        hoy = date.today()
+        racha = 0
+        check = hoy
+        if check not in fechas:
+            check = hoy - timedelta(days=1)
+            if check not in fechas: return 0
+        
+        while check in fechas:
+            racha += 1
+            check -= timedelta(days=1)
+        return racha
+    except: return 0
 
 def analizar_comida_ia(image):
     buffer = io.BytesIO()
@@ -362,7 +430,17 @@ def calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo):
 with st.sidebar:
     st.title("MacroRecioIA")
     user_name = st.session_state['user_info'].get('username', 'Usuario')
+    user_id = st.session_state['user_info'].get('id_usuario')
     st.caption(f"Hola, {user_name}")
+    
+    # Racha
+    racha_actual = calcular_racha_usuario(user_id)
+    st.markdown(f"""
+    <div style="background: rgba(251, 191, 36, 0.15); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; color: #fbbf24; font-size: 20px; font-weight: 800;">🔥 Racha: {racha_actual}</h3>
+        <p style="margin: 0; font-size: 13px; color: #f8fafc; font-weight: 500;">días seguidos registrando</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # MENÚ LIQUID GLASS INTEGRADO
     selected = option_menu(
@@ -503,6 +581,24 @@ elif selected == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
+        # === INICIO PANTALLA DE CARGA (OVERLAY) ===
+        loader = st.empty()
+        # Puedes cambiar esta URL por tu GIF
+        imagen_medico = "https://img.freepik.com/premium-vector/muscular-doctor-writing-notes-clipboard-cartoon-style_114309-328.jpg" 
+        
+        loader.markdown(f"""
+            <div id="loading-overlay">
+                <div class="loading-content">
+                    <img src="{imagen_medico}" class="loading-image">
+                    <div class="loading-text">Analizando tu metabolismo...</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        time.sleep(3) # Tiempo de espera dramático
+        loader.empty() # Borrar pantalla de carga
+        # === FIN PANTALLA DE CARGA ===
+
         macros = calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo)
         datos_para_bd = {
             'genero': genero, 'edad': edad, 'peso': peso, 'altura': altura,
@@ -583,7 +679,7 @@ elif selected == "Progreso":
     if historial:
         st.markdown("### 🍽 Historial de Hoy")
         for h in historial:
-            st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['proteinas']} G:{h['grasas']} C:{h['carbos']})")
+            st.write(f"- **{h['nombre_plato']}** — {h['calorias']} kcal (P:{h['Proteinas']} G:{h['Grasas']} C:{h['Carbos']})")
     
     st.markdown("### 💾 Exportar Datos")
     try:
