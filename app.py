@@ -105,7 +105,7 @@ html, body, [class*="css"] {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.85); /* Fondo negro transparente */
+    background: rgba(0, 0, 0, 0.92); /* Fondo muy oscuro para resaltar el video */
     z-index: 999999;
     display: flex;
     flex-direction: column;
@@ -120,12 +120,14 @@ html, body, [class*="css"] {
 }
 
 .loading-video {
-    width: 300px;
+    width: 320px;
     height: auto;
     border-radius: 20px;
-    box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+    /* Sombra verde neon para integrar el estilo */
+    box-shadow: 0 0 50px rgba(16, 185, 129, 0.3); 
     margin-bottom: 25px;
-    border: 3px solid #10B981;
+    border: 2px solid rgba(16, 185, 129, 0.5);
+    /* mix-blend-mode: screen;  <- Descomenta esto si el fondo del video fuera negro puro para borrarlo */
 }
 
 .loading-text {
@@ -133,8 +135,10 @@ html, body, [class*="css"] {
     font-size: 26px;
     font-weight: 800;
     margin-top: 15px;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    letter-spacing: 1.5px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    font-family: 'Inter', sans-serif;
+    text-transform: uppercase;
 }
 
 @keyframes fadeIn {
@@ -580,8 +584,8 @@ elif selected == "Perfil":
         # === INICIO PANTALLA DE CARGA (OVERLAY) ===
         loader = st.empty()
         
-        # VIDEO ANIMADO GENERADO (Médico musculoso cartoon escribiendo)
-        video_medico = "http://googleusercontent.com/generated_video_content/1364753117307851"
+        # VIDEO GENERADO (Médico musculoso cartoon escribiendo)
+        video_medico = "http://googleusercontent.com/generated_video_content/15690523961302908185"
         
         loader.markdown(f"""
             <div id="loading-overlay">
@@ -592,8 +596,8 @@ elif selected == "Perfil":
             </div>
         """, unsafe_allow_html=True)
         
-        time.sleep(3.5) # Tiempo para ver la animación
-        loader.empty() # Borrar pantalla de carga
+        time.sleep(3.5) 
+        loader.empty() 
         # === FIN PANTALLA DE CARGA ===
 
         macros = calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo)
