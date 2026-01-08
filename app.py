@@ -105,13 +105,13 @@ html, body, [class*="css"] {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.9); /* Fondo más oscuro para resaltar */
+    background: rgba(0, 0, 0, 0.85); /* Fondo negro transparente */
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px);
 }
 
 .loading-content {
@@ -119,27 +119,26 @@ html, body, [class*="css"] {
     animation: fadeIn 0.5s ease-in-out;
 }
 
-.loading-image {
-    width: 300px; /* Tamaño generoso */
+.loading-video {
+    width: 300px;
     height: auto;
-    border-radius: 25px;
-    box-shadow: 0 0 50px rgba(16, 185, 129, 0.5); /* Glow verde */
-    margin-bottom: 30px;
-    border: 4px solid #10B981;
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
+    margin-bottom: 25px;
+    border: 3px solid #10B981;
 }
 
 .loading-text {
     color: #10B981;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 800;
     margin-top: 15px;
-    letter-spacing: 1.5px;
-    text-shadow: 0 4px 15px rgba(0,0,0,0.8);
-    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.95); }
+    from { opacity: 0; transform: scale(0.9); }
     to { opacity: 1; transform: scale(1); }
 }
 
@@ -581,13 +580,13 @@ elif selected == "Perfil":
         # === INICIO PANTALLA DE CARGA (OVERLAY) ===
         loader = st.empty()
         
-        # GIF animado de médico musculoso cartoon escribiendo (Verificado)
-        imagen_medico = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcGZ4bHk5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHZw/3o7TKSjRrfIPjeiVyM/giphy.gif"
+        # VIDEO ANIMADO GENERADO (Médico musculoso cartoon escribiendo)
+        video_medico = "http://googleusercontent.com/generated_video_content/1364753117307851"
         
         loader.markdown(f"""
             <div id="loading-overlay">
                 <div class="loading-content">
-                    <img src="{imagen_medico}" class="loading-image">
+                    <video src="{video_medico}" autoplay loop muted playsinline class="loading-video"></video>
                     <div class="loading-text">Analizando tu metabolismo...</div>
                 </div>
             </div>
