@@ -105,13 +105,13 @@ html, body, [class*="css"] {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.92); /* Fondo muy oscuro para resaltar el video */
+    background: rgba(0, 0, 0, 0.95); /* Fondo casi negro total */
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(15px);
 }
 
 .loading-content {
@@ -122,23 +122,21 @@ html, body, [class*="css"] {
 .loading-video {
     width: 320px;
     height: auto;
-    border-radius: 20px;
-    /* Sombra verde neon para integrar el estilo */
-    box-shadow: 0 0 50px rgba(16, 185, 129, 0.3); 
-    margin-bottom: 25px;
-    border: 2px solid rgba(16, 185, 129, 0.5);
-    /* mix-blend-mode: screen;  <- Descomenta esto si el fondo del video fuera negro puro para borrarlo */
+    border-radius: 24px;
+    /* Sombra verde brillante para integrar el video aunque tenga fondo */
+    box-shadow: 0 0 60px rgba(16, 185, 129, 0.4); 
+    margin-bottom: 30px;
+    border: 3px solid #10B981;
 }
 
 .loading-text {
     color: #10B981;
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
-    margin-top: 15px;
-    letter-spacing: 1.5px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
-    font-family: 'Inter', sans-serif;
+    margin-top: 10px;
+    letter-spacing: 2px;
     text-transform: uppercase;
+    text-shadow: 0 2px 20px rgba(16, 185, 129, 0.4);
 }
 
 @keyframes fadeIn {
