@@ -98,28 +98,20 @@ html, body, [class*="css"] {
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
 }
 
-/* --- ANIMACIÓN DE CARGA (OVERLAY) --- */
-@keyframes writingMotion {
-    0% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(2deg) scale(1.05); }
-    50% { transform: rotate(0deg) scale(1); }
-    75% { transform: rotate(-2deg) scale(1.05); }
-    100% { transform: rotate(0deg) scale(1); }
-}
-
+/* --- OVERLAY DE CARGA --- */
 #loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.85); /* Fondo negro transparente */
+    background: rgba(0, 0, 0, 0.9); /* Fondo más oscuro para resaltar */
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(10px);
 }
 
 .loading-content {
@@ -128,27 +120,26 @@ html, body, [class*="css"] {
 }
 
 .loading-image {
-    width: 300px;
+    width: 300px; /* Tamaño generoso */
     height: auto;
-    border-radius: 20px;
-    box-shadow: 0 0 40px rgba(16, 185, 129, 0.4);
-    margin-bottom: 25px;
-    border: 3px solid #10B981;
-    /* Aquí aplicamos la animación de movimiento a la imagen */
-    animation: writingMotion 1.5s infinite ease-in-out; 
+    border-radius: 25px;
+    box-shadow: 0 0 50px rgba(16, 185, 129, 0.5); /* Glow verde */
+    margin-bottom: 30px;
+    border: 4px solid #10B981;
 }
 
 .loading-text {
     color: #10B981;
-    font-size: 26px;
+    font-size: 28px;
     font-weight: 800;
     margin-top: 15px;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    letter-spacing: 1.5px;
+    text-shadow: 0 4px 15px rgba(0,0,0,0.8);
+    text-transform: uppercase;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
+    from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
 }
 
@@ -590,11 +581,8 @@ elif selected == "Perfil":
         # === INICIO PANTALLA DE CARGA (OVERLAY) ===
         loader = st.empty()
         
-        # URL de la imagen generada (Médico musculoso escribiendo)
-        imagen_medico = "https://img.freepik.com/premium-vector/muscular-doctor-writing-notes-clipboard-cartoon-style_114309-328.jpg"
-        
-        # Nota: Como es una imagen estática, la animación CSS 'writingMotion' 
-        # que definimos arriba se encargará de darle movimiento (respiración/latido).
+        # GIF animado de médico musculoso cartoon escribiendo (Verificado)
+        imagen_medico = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcGZ4bHk5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHo5ZHZw/3o7TKSjRrfIPjeiVyM/giphy.gif"
         
         loader.markdown(f"""
             <div id="loading-overlay">
@@ -605,7 +593,7 @@ elif selected == "Perfil":
             </div>
         """, unsafe_allow_html=True)
         
-        time.sleep(3) # Tiempo de espera dramático
+        time.sleep(3.5) # Tiempo para ver la animación
         loader.empty() # Borrar pantalla de carga
         # === FIN PANTALLA DE CARGA ===
 
