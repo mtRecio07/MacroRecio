@@ -105,13 +105,13 @@ html, body, [class*="css"] {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85); /* Fondo oscuro semitransparente */
+    background: rgba(0, 0, 0, 0.9);
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(8px);
 }
 
 .loading-content {
@@ -119,22 +119,23 @@ html, body, [class*="css"] {
     animation: fadeIn 0.5s ease-in-out;
 }
 
-.loading-image {
-    width: 280px;
+/* TRUCO CSS: mix-blend-mode para quitar el fondo negro del video */
+.loading-video {
+    width: 350px;
     height: auto;
-    /* Importante: No ponemos background ni border para que se vea la transparencia */
-    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.4)); /* Sombra verde al contorno del dibujo */
+    mix-blend-mode: screen; /* Esto hace transparente lo negro */
     margin-bottom: 20px;
+    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5)); /* Glow sutil */
 }
 
 .loading-text {
     color: #10B981;
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 800;
     margin-top: 10px;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    text-shadow: 0 2px 15px rgba(16, 185, 129, 0.6);
     font-family: 'Inter', sans-serif;
 }
 
@@ -578,23 +579,22 @@ elif selected == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
-        # === INICIO PANTALLA DE CARGA (OVERLAY GIF TRANSPARENTE) ===
+        # === INICIO PANTALLA DE CARGA (OVERLAY VIDEO SIN FONDO) ===
         loader = st.empty()
         
-        # GIF animado de médico escribiendo (Cartoon style - Fondo Transparente)
-        # Este enlace es de un sticker de Giphy que funciona bien con fondos oscuros.
-        imagen_medico = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG9weTNwZGQ3bHlzYnI5ZGQ5YnI5ZGQ5YnI5ZGQ5YnI5ZGQ5YnI5ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/l0HlHFRb68qJKyIyI/giphy.gif"
+        # VIDEO GENERADO: Médico musculoso cartoon escribiendo (fondo negro)
+        video_medico = "http://googleusercontent.com/generated_video_content/17925120734892954326"
         
         loader.markdown(f"""
             <div id="loading-overlay">
                 <div class="loading-content">
-                    <img src="{imagen_medico}" class="loading-image">
+                    <video src="{video_medico}" autoplay loop muted playsinline class="loading-video"></video>
                     <div class="loading-text">Analizando tu metabolismo...</div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
         
-        time.sleep(3.5) 
+        time.sleep(4) 
         loader.empty() 
         # === FIN PANTALLA DE CARGA ===
 
