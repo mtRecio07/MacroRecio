@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # =================================================
-# ESTILOS CSS "LIQUID GLASS" PREMIUM
+# ESTILOS CSS "LIQUID GLASS" PREMIUM + OVERLAY CARGA
 # =================================================
 st.markdown("""
 <style>
@@ -29,20 +29,20 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif; 
 }
 
-/* Fondo General */
+/* Fondo General con Gradiente Profundo */
 .stApp { 
     background: linear-gradient(135deg, #0f172a, #020617); 
     color: #f8fafc; 
 }
 
-/* Sidebar Liquid Glass */
+/* --- BARRA LATERAL LIQUID GLASS --- */
 [data-testid="stSidebar"] {
-    background-color: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(16px);
+    background-color: rgba(15, 23, 42, 0.65); /* Semi-transparente */
+    backdrop-filter: blur(16px); /* Efecto vidrio esmerilado */
     border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Inputs */
+/* Inputs y Textos */
 .stTextInput > div > div > input { 
     color: #ffffff; 
     background-color: rgba(255, 255, 255, 0.05);
@@ -54,7 +54,7 @@ html, body, [class*="css"] {
     color: white;
 }
 
-/* Cards */
+/* Tarjetas (Cards) */
 .card { 
     background: rgba(30, 41, 59, 0.6); 
     border-radius: 20px; 
@@ -98,15 +98,49 @@ html, body, [class*="css"] {
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
 }
 
-/* Estilo simple para el contenedor de carga */
-.loading-text {
+/* --- OVERLAY DE CARGA --- */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9); /* Fondo oscuro */
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+}
+
+.loading-content {
     text-align: center;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.loading-image {
+    width: 250px;
+    height: auto;
+    /* Sin bordes ni fondo para que se vea la transparencia del GIF */
+    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6)); /* Sombra verde al contorno */
+    margin-bottom: 20px;
+}
+
+.loading-text {
     color: #10B981;
     font-size: 24px;
-    font-weight: bold;
-    margin-top: 10px;
+    font-weight: 800;
+    margin-top: 15px;
+    letter-spacing: 1px;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    font-family: 'Inter', sans-serif;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
 }
 
 img { border-radius: 18px; }
@@ -544,45 +578,24 @@ elif selected == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
-        # === INICIO PANTALLA DE CARGA (OVERLAY) ===
+        # === INICIO PANTALLA DE CARGA (OVERLAY GIF) ===
+        loader = st.empty()
         
-        # CONTENEDOR FLOTANTE PARA EL EFECTO DE CARGA
-        with st.empty():
-            # VIDEO URL (Médico musculoso cartoon escribiendo - Generado)
-            video_medico = "http://googleusercontent.com/generated_video_content/15690523961302908185"
-            
-            # Usamos st.markdown con HTML crudo para el overlay completo
-            # El truco es usar un div con z-index alto que cubra todo
-            st.markdown(f"""
-                <div style="
-                    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-                    background: rgba(0,0,0,0.92); z-index: 9999;
-                    display: flex; flex-direction: column; justify-content: center; align-items: center;
-                    backdrop-filter: blur(10px);
-                ">
-                    <div style="
-                        width: 320px; border-radius: 20px; overflow: hidden;
-                        box-shadow: 0 0 50px rgba(16, 185, 129, 0.4);
-                        border: 3px solid #10B981; margin-bottom: 20px;
-                    ">
-                        <video src="{video_medico}" autoplay loop muted playsinline 
-                            style="width: 100%; display: block;">
-                        </video>
-                    </div>
-                    <div style="
-                        color: #10B981; font-size: 24px; font-weight: 800; font-family: sans-serif;
-                        text-transform: uppercase; letter-spacing: 2px;
-                        text-shadow: 0 2px 20px rgba(16, 185, 129, 0.6);
-                    ">
-                        Analizando tu metabolismo...
-                    </div>
+        # URL de un Sticker de Doctor (Fondo Transparente)
+        # Puedes cambiar este enlace por el de Giphy que prefieras
+        imagen_medico = "https://media.giphy.com/media/d2Z4rTi11c9LRita/giphy.gif"
+        
+        loader.markdown(f"""
+            <div id="loading-overlay">
+                <div class="loading-content">
+                    <img src="{imagen_medico}" class="loading-image">
+                    <div class="loading-text">Analizando tu metabolismo...</div>
                 </div>
-            """, unsafe_allow_html=True)
-            
-            time.sleep(3.5) # Espera dramática mientras se ve el video
-            
-            # Al salir del bloque `with st.empty():`, el contenido se borra automáticamente si reescribimos
-            # o simplemente dejamos que el script continúe y haga rerun.
+            </div>
+        """, unsafe_allow_html=True)
+        
+        time.sleep(3.5) # Tiempo de espera
+        loader.empty() # Borrar pantalla de carga
         # === FIN PANTALLA DE CARGA ===
 
         macros = calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo)
