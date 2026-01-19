@@ -29,20 +29,20 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif; 
 }
 
-/* Fondo General con Gradiente Profundo */
+/* Fondo General */
 .stApp { 
     background: linear-gradient(135deg, #0f172a, #020617); 
     color: #f8fafc; 
 }
 
-/* --- BARRA LATERAL LIQUID GLASS --- */
+/* Sidebar Liquid Glass */
 [data-testid="stSidebar"] {
-    background-color: rgba(15, 23, 42, 0.65); /* Semi-transparente */
-    backdrop-filter: blur(16px); /* Efecto vidrio esmerilado */
+    background-color: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(16px);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* Inputs y Textos */
+/* Inputs */
 .stTextInput > div > div > input { 
     color: #ffffff; 
     background-color: rgba(255, 255, 255, 0.05);
@@ -54,7 +54,7 @@ html, body, [class*="css"] {
     color: white;
 }
 
-/* Tarjetas (Cards) */
+/* Cards */
 .card { 
     background: rgba(30, 41, 59, 0.6); 
     border-radius: 20px; 
@@ -105,13 +105,13 @@ html, body, [class*="css"] {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.9); /* Fondo oscuro */
+    background: rgba(0, 0, 0, 0.85); /* Fondo oscuro semitransparente */
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(5px);
 }
 
 .loading-content {
@@ -120,10 +120,10 @@ html, body, [class*="css"] {
 }
 
 .loading-image {
-    width: 250px;
+    width: 280px;
     height: auto;
-    /* Sin bordes ni fondo para que se vea la transparencia del GIF */
-    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.6)); /* Sombra verde al contorno */
+    /* Importante: No ponemos background ni border para que se vea la transparencia */
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.4)); /* Sombra verde al contorno del dibujo */
     margin-bottom: 20px;
 }
 
@@ -131,8 +131,8 @@ html, body, [class*="css"] {
     color: #10B981;
     font-size: 24px;
     font-weight: 800;
-    margin-top: 15px;
-    letter-spacing: 1px;
+    margin-top: 10px;
+    letter-spacing: 1.5px;
     text-transform: uppercase;
     text-shadow: 0 2px 10px rgba(0,0,0,0.8);
     font-family: 'Inter', sans-serif;
@@ -578,12 +578,12 @@ elif selected == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
-        # === INICIO PANTALLA DE CARGA (OVERLAY GIF) ===
+        # === INICIO PANTALLA DE CARGA (OVERLAY GIF TRANSPARENTE) ===
         loader = st.empty()
         
-        # URL de un Sticker de Doctor (Fondo Transparente)
-        # Puedes cambiar este enlace por el de Giphy que prefieras
-        imagen_medico = "https://media.giphy.com/media/d2Z4rTi11c9LRita/giphy.gif"
+        # GIF animado de médico escribiendo (Cartoon style - Fondo Transparente)
+        # Este enlace es de un sticker de Giphy que funciona bien con fondos oscuros.
+        imagen_medico = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExaG9weTNwZGQ3bHlzYnI5ZGQ5YnI5ZGQ5YnI5ZGQ5YnI5ZGQ5YnI5ZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/l0HlHFRb68qJKyIyI/giphy.gif"
         
         loader.markdown(f"""
             <div id="loading-overlay">
@@ -594,8 +594,8 @@ elif selected == "Perfil":
             </div>
         """, unsafe_allow_html=True)
         
-        time.sleep(3.5) # Tiempo de espera
-        loader.empty() # Borrar pantalla de carga
+        time.sleep(3.5) 
+        loader.empty() 
         # === FIN PANTALLA DE CARGA ===
 
         macros = calcular_macros_logica(genero, edad, peso, altura, actividad, objetivo)
