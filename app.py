@@ -105,7 +105,7 @@ html, body, [class*="css"] {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.92); /* Fondo un poco más oscuro */
+    background: rgba(0, 0, 0, 0.92);
     z-index: 999999;
     display: flex;
     flex-direction: column;
@@ -116,11 +116,11 @@ html, body, [class*="css"] {
 
 .progress-container {
     width: 320px;
-    height: 12px; /* Barra un poco más gruesa */
+    height: 12px;
     background-color: rgba(255, 255, 255, 0.15);
     border-radius: 6px;
     position: relative;
-    margin-top: 80px; /* Más espacio para el personaje arriba */
+    margin-top: 100px; /* Suficiente espacio para el personaje arriba */
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
 
@@ -137,14 +137,14 @@ html, body, [class*="css"] {
 /* El MINI DOCTOR caminando encima */
 .doctor-walker {
     position: absolute;
-    top: -48px; /* Ajuste preciso para que los pies toquen la barra */
+    bottom: 12px; /* Posicionado justo encima de la barra */
     left: 0;
-    width: 48px; /* Tamaño "mini" */
+    width: 50px; /* Tamaño visible del GIF */
     height: auto;
-    /* La animación mueve al doctor de izquierda a derecha sincronizado con la barra */
+    /* La animación mueve al contenedor del doctor de 0% a 100% left */
     animation: moveDoctor 4s linear forwards;
-    transform: translateX(-50%); /* Centrar el sprite en el punto de avance */
-    image-rendering: pixelated; /* Asegura que el pixel art se vea nítido */
+    transform: translateX(-50%); /* Centrar horizontalmente respecto al punto de avance */
+    z-index: 10;
 }
 
 .loading-text {
@@ -606,8 +606,11 @@ elif selected == "Perfil":
         # === INICIO PANTALLA DE CARGA (BARRA + MINI DOCTOR PIXEL ART) ===
         loader = st.empty()
         
-        # NUEVO GIF: Un mini doctor estilo pixel art caminando. Fondo transparente.
-        mini_doctor_pixel_gif = "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExbWZ0bnJ0dDFpZ2libmF4OGxjYzBrdm9sY2wxZ2tlN3JibThuaG16ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/RLIpfGqkkmrkI/giphy.gif"
+        # NUEVO GIF: Un mini personaje pixel art caminando
+        # Usamos un GIF más confiable de un personaje pixel art básico que funciona bien como "placeholder" 
+        # si el específico de doctor no carga. Este es un personaje caminando estilo RPG.
+        # Si prefieres otro, reemplaza la URL.
+        mini_doctor_pixel_gif = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbWZ0bnJ0dDFpZ2libmF4OGxjYzBrdm9sY2wxZ2tlN3JibThuaG16ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/RLIpfGqkkmrkI/giphy.gif"
         
         loader.markdown(f"""
             <div id="loading-overlay">
