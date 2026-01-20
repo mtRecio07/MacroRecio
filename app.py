@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # =================================================
-# ESTILOS CSS "LIQUID GLASS" PREMIUM + OVERLAY CARGA
+# ESTILOS CSS "LIQUID GLASS" PREMIUM + OVERLAY CARGA ANIMADO
 # =================================================
 st.markdown("""
 <style>
@@ -35,7 +35,7 @@ html, body, [class*="css"] {
     color: #f8fafc; 
 }
 
-/* Sidebar Liquid Glass */
+/* Sidebar */
 [data-testid="stSidebar"] {
     background-color: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(16px);
@@ -98,50 +98,70 @@ html, body, [class*="css"] {
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
 }
 
-/* --- OVERLAY DE CARGA --- */
+/* --- OVERLAY DE CARGA (BARRA + DOCTOR CAMINANDO) --- */
 #loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0, 0, 0, 0.9);
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(5px);
 }
 
-.loading-content {
-    text-align: center;
-    animation: fadeIn 0.5s ease-in-out;
+.progress-container {
+    width: 300px;
+    height: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    position: relative;
+    margin-top: 60px; /* Espacio para el doctor */
 }
 
-/* TRUCO CSS: mix-blend-mode para quitar el fondo negro del video */
-.loading-video {
-    width: 350px;
+/* Animación de la barra llenándose */
+.progress-bar {
+    height: 100%;
+    background: #10B981;
+    border-radius: 10px;
+    width: 0%;
+    animation: fillBar 4s linear forwards;
+    box-shadow: 0 0 15px #10B981;
+}
+
+/* El doctor caminando encima */
+.doctor-walker {
+    position: absolute;
+    top: -90px; /* Ajustar altura para que pise la barra */
+    left: 0;
+    width: 80px; /* Tamaño del mini doctor */
     height: auto;
-    mix-blend-mode: screen; /* Esto hace transparente lo negro */
-    margin-bottom: 20px;
-    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.5)); /* Glow sutil */
+    animation: moveDoctor 4s linear forwards;
+    transform: translateX(-50%); /* Centrar imagen en el punto */
 }
 
 .loading-text {
     color: #10B981;
-    font-size: 26px;
-    font-weight: 800;
-    margin-top: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    margin-top: 20px;
+    font-family: 'Inter', sans-serif;
     letter-spacing: 2px;
     text-transform: uppercase;
-    text-shadow: 0 2px 15px rgba(16, 185, 129, 0.6);
-    font-family: 'Inter', sans-serif;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
+@keyframes fillBar {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+@keyframes moveDoctor {
+    0% { left: 0%; }
+    100% { left: 100%; }
 }
 
 img { border-radius: 18px; }
@@ -579,16 +599,21 @@ elif selected == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
-        # === INICIO PANTALLA DE CARGA (OVERLAY VIDEO SIN FONDO) ===
+        # === INICIO PANTALLA DE CARGA (BARRA + DOCTOR CAMINANDO) ===
         loader = st.empty()
         
-        # VIDEO GENERADO: Médico musculoso cartoon escribiendo (fondo negro)
-        video_medico = "http://googleusercontent.com/generated_video_content/17925120734892954326"
+        # Sticker GIF de un doctor/personaje médico caminando o escribiendo
+        # Este enlace es de un sticker de Giphy (fondo transparente).
+        # Animamos este GIF para que se mueva a la vez que la barra de carga usando CSS.
+        mini_doctor_gif = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExajF6eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eA/3o7TKSjRrfIPjeiVyM/giphy.gif"
         
         loader.markdown(f"""
             <div id="loading-overlay">
-                <div class="loading-content">
-                    <video src="{video_medico}" autoplay loop muted playsinline class="loading-video"></video>
+                <div class="loading-content" style="width: 80%; max-width: 400px;">
+                    <div class="progress-container">
+                        <img src="{mini_doctor_gif}" class="doctor-walker">
+                        <div class="progress-bar"></div>
+                    </div>
                     <div class="loading-text">Analizando tu metabolismo...</div>
                 </div>
             </div>
