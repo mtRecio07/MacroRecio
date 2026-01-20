@@ -605,7 +605,7 @@ elif selected == "Perfil":
         # Sticker GIF de un doctor/personaje médico caminando o escribiendo
         # Este enlace es de un sticker de Giphy (fondo transparente).
         # Animamos este GIF para que se mueva a la vez que la barra de carga usando CSS.
-        mini_doctor_gif = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExajF6eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eA/3o7TKSjRrfIPjeiVyM/giphy.gif"
+        mini_doctor_gif = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExajF6eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eA/3o7TKSjRrfIPjeiVyM/giphy.gif"
         
         loader.markdown(f"""
             <div id="loading-overlay">
