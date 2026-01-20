@@ -98,61 +98,64 @@ html, body, [class*="css"] {
     box-shadow: 0 6px 15px rgba(16, 185, 129, 0.4);
 }
 
-/* --- OVERLAY DE CARGA (BARRA + DOCTOR CAMINANDO) --- */
+/* --- OVERLAY DE CARGA (BARRA + MINI DOCTOR PIXEL ART) --- */
 #loading-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.9);
+    background: rgba(0, 0, 0, 0.92); /* Fondo un poco más oscuro */
     z-index: 999999;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(8px);
 }
 
 .progress-container {
-    width: 300px;
-    height: 10px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
+    width: 320px;
+    height: 12px; /* Barra un poco más gruesa */
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
     position: relative;
-    margin-top: 60px; /* Espacio para el doctor */
+    margin-top: 80px; /* Más espacio para el personaje arriba */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
 }
 
 /* Animación de la barra llenándose */
 .progress-bar {
     height: 100%;
-    background: #10B981;
-    border-radius: 10px;
+    background: linear-gradient(90deg, #10B981, #34D399);
+    border-radius: 6px;
     width: 0%;
     animation: fillBar 4s linear forwards;
-    box-shadow: 0 0 15px #10B981;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
 }
 
-/* El doctor caminando encima */
+/* El MINI DOCTOR caminando encima */
 .doctor-walker {
     position: absolute;
-    top: -65px; /* Ajustado para que parezca caminar sobre la barra */
+    top: -48px; /* Ajuste preciso para que los pies toquen la barra */
     left: 0;
-    width: 60px; /* Tamaño ajustado del mini doctor */
+    width: 48px; /* Tamaño "mini" */
     height: auto;
+    /* La animación mueve al doctor de izquierda a derecha sincronizado con la barra */
     animation: moveDoctor 4s linear forwards;
-    transform: translateX(-50%); /* Centrar imagen en el punto */
-    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.8)); /* Pequeño brillo verde */
+    transform: translateX(-50%); /* Centrar el sprite en el punto de avance */
+    image-rendering: pixelated; /* Asegura que el pixel art se vea nítido */
 }
 
 .loading-text {
-    color: #10B981;
-    font-size: 18px;
+    color: #34D399;
+    font-size: 16px;
     font-weight: 700;
-    margin-top: 20px;
+    margin-top: 25px;
     font-family: 'Inter', sans-serif;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 @keyframes fillBar {
@@ -600,20 +603,17 @@ elif selected == "Perfil":
         ok = st.form_submit_button("Calcular requerimientos")
 
     if ok:
-        # === INICIO PANTALLA DE CARGA (BARRA + DOCTOR CAMINANDO) ===
+        # === INICIO PANTALLA DE CARGA (BARRA + MINI DOCTOR PIXEL ART) ===
         loader = st.empty()
         
-        # Sticker GIF de un doctor "Cartoon/Pixel Art" caminando de lado (side-scrolling).
-        # Este es un GIF con fondo transparente.
-        mini_doctor_gif = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExajF6eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eA/3o7TKSjRrfIPjeiVyM/giphy.gif"
-        # Nota: Si el GIF anterior no te gustaba, he puesto este que es un clásico "walk cycle". 
-        # Si prefieres otro específico, solo tienes que cambiar esta URL.
+        # NUEVO GIF: Un mini doctor estilo pixel art caminando. Fondo transparente.
+        mini_doctor_pixel_gif = "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExbWZ0bnJ0dDFpZ2libmF4OGxjYzBrdm9sY2wxZ2tlN3JibThuaG16ciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/RLIpfGqkkmrkI/giphy.gif"
         
         loader.markdown(f"""
             <div id="loading-overlay">
                 <div class="loading-content" style="width: 80%; max-width: 400px;">
                     <div class="progress-container">
-                        <img src="{mini_doctor_gif}" class="doctor-walker">
+                        <img src="{mini_doctor_pixel_gif}" class="doctor-walker">
                         <div class="progress-bar"></div>
                     </div>
                     <div class="loading-text">Analizando tu metabolismo...</div>
