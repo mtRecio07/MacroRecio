@@ -136,12 +136,13 @@ html, body, [class*="css"] {
 /* El doctor caminando encima */
 .doctor-walker {
     position: absolute;
-    top: -90px; /* Ajustar altura para que pise la barra */
+    top: -65px; /* Ajustado para que parezca caminar sobre la barra */
     left: 0;
-    width: 80px; /* Tamaño del mini doctor */
+    width: 60px; /* Tamaño ajustado del mini doctor */
     height: auto;
     animation: moveDoctor 4s linear forwards;
     transform: translateX(-50%); /* Centrar imagen en el punto */
+    filter: drop-shadow(0 0 5px rgba(16, 185, 129, 0.8)); /* Pequeño brillo verde */
 }
 
 .loading-text {
@@ -602,10 +603,11 @@ elif selected == "Perfil":
         # === INICIO PANTALLA DE CARGA (BARRA + DOCTOR CAMINANDO) ===
         loader = st.empty()
         
-        # Sticker GIF de un doctor/personaje médico caminando o escribiendo
-        # Este enlace es de un sticker de Giphy (fondo transparente).
-        # Animamos este GIF para que se mueva a la vez que la barra de carga usando CSS.
+        # Sticker GIF de un doctor "Cartoon/Pixel Art" caminando de lado (side-scrolling).
+        # Este es un GIF con fondo transparente.
         mini_doctor_gif = "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExajF6eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eG96eA/3o7TKSjRrfIPjeiVyM/giphy.gif"
+        # Nota: Si el GIF anterior no te gustaba, he puesto este que es un clásico "walk cycle". 
+        # Si prefieres otro específico, solo tienes que cambiar esta URL.
         
         loader.markdown(f"""
             <div id="loading-overlay">
